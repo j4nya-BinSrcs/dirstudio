@@ -1,0 +1,61 @@
+# =====================================
+# Python-specific ignores (managed by uv)
+# =====================================
+
+# Byte-code files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/ # For Ruff linter/formatter
+
+# uv and virtual environment ignores
+.venv/ 
+venv/
+env/
+ENV/
+
+# Distribution and packaging
+dist/
+build/
+*.egg
+*.whl
+
+# Specific IDE/editor ignores
+.vscode/
+.idea/
+
+# Environment variables and sensitive files
+.env
+.flaskenv
+keys/ # Or any folder holding service account keys
+
+# =====================================
+# JavaScript-specific ignores (managed by npm)
+# =====================================
+
+# Dependencies
+/node_modules
+/bower_components
+
+# Build artifacts
+/dist
+/build
+/coverage
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+test-0.0.0.log
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
