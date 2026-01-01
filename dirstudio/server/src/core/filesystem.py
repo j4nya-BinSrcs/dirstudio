@@ -3,18 +3,18 @@ import json
 from pathlib import Path
 from dataclasses import dataclass, field
 import pickle
-from typing import Any, Callable, Dict, Iterator, List, Optional
+from typing import Any, Callable, Iterator, Optional
 
-from metadata import MetaTag, MetaTime, Metadata
+from .metadata import MetaTag, MetaTime, Metadata
 
 @dataclass
 class FileNode:
     """Represents a file in the filesystem tree."""
     path: str
     metadata: Metadata
-    hashes: Dict[str, str]
+    hashes: dict[str, str] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "path": self.path,
             "metadata": self.metadata.to_dict(),
@@ -22,7 +22,7 @@ class FileNode:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "FileNode":
+    def from_dict(cls, data: dict[str, Any]) -> "FileNode":
         return cls(
             path=data["path"],
             metadata=Metadata.from_dict(data["metadata"]),
@@ -42,10 +42,10 @@ class DirNode:
     """Represents a directory in the filesystem tree."""
     path: str
     metadata: Metadata
-    files: List[FileNode] = field(default_factory=list)
-    subdirs: List["DirNode"] = field(default_factory=list)
+    files: list[FileNode] = field(default_factory=list)
+    subdirs: list["DirNode"] = field(default_factory=list)
     
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "path": self.path,
             "metadata": self.metadata.to_dict(),
@@ -54,7 +54,7 @@ class DirNode:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DirNode":
+    def from_dict(cls, data: dict[str, Any]) -> "DirNode":
         return cls(
             path=data["path"],
             metadata=Metadata.from_dict(data["metadata"]),
@@ -83,8 +83,8 @@ class FilesystemTree:
     def __init__(self, root_path: str):
         self.root_path = root_path
         self.root: Optional[DirNode] = None 
-        self._path_index: Dict[str, DirNode] = {}
-        self._stats_cache: Optional[Dict[str, Any]] = None
+        self._path_index: dict[str, DirNode] = {}
+        self._stats_cache: Optional[dict[str, Any]] = None
 
     def _chain_path(self, file_path: str) -> DirNode:
         """
@@ -147,7 +147,7 @@ class FilesystemTree:
         
         return current_node # type: ignore
 
-    def attach_file(self,  path: str, metadata: Metadata, hashes: Dict[str, str]) -> FileNode:
+    def attach_file(self,  path: str, metadata: Metadata, hashes: dict[str, str]) -> FileNode:
         """
         Add a file to the tree. Automatically creates parent directories.
         Args:
@@ -245,15 +245,13 @@ class FilesystemTree:
             
             queue.extend(node.subdirs)
 
-    def compute_stats(self, use_cache: bool = True) -> Dict[str, Any]:
+    def compute_stats(self, use_cache: bool = True) -> dict[str, Any]:
         """
         Compute tree statistics with optional caching.
-        
         Args:
-            use_cache: Use cached stats if available
-            
+            use_cache: Use cached stats if available 
         Returns:
-            Dictionary with comprehensive statistics
+            dictionary with comprehensive statistics
         """
         if use_cache and self._stats_cache:
             return self._stats_cache.copy()
@@ -286,7 +284,7 @@ class FilesystemTree:
         for file_node in self.traverse():
             stats['total_files'] += 1
             stats['total_size'] += file_node.size
-            stats['file_types'][file_node.metadata.filetype] += 1
+            stats['file_types'][file_node.metadata.filetype.value] += 1
             
             ext = Path(file_node.path).suffix.lower()
             if ext:

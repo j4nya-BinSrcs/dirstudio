@@ -84,7 +84,7 @@ class Metadata:
                 ino=_extract_ino(stat_info),
                 owner=_extract_owner(stat_info),
                 permissions=_extract_permissions(stat_info),
-                properties=_extract_properties(path, stat_info) if not extract_props else {},
+                properties=_extract_properties(path, stat_info) if extract_props else {},
                 mime=_extract_mime(path)
             )
         except PermissionError as e:
@@ -290,7 +290,7 @@ def _extract_times(stat_info: os.stat_result) -> dict[MetaTime, str]:
         Dictionary mapping MetaTime to ISO format timestamp strings
     """
     return {
-        MetaTime.CREATED: datetime.fromtimestamp(stat_info.st_birthtime).isoformat(),
+        MetaTime.CREATED: datetime.fromtimestamp(stat_info.st_ctime).isoformat(),
         MetaTime.ACCESSED: datetime.fromtimestamp(stat_info.st_atime).isoformat(),
         MetaTime.MODIFIED: datetime.fromtimestamp(stat_info.st_mtime).isoformat()
     }
