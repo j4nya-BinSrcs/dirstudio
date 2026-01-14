@@ -18,7 +18,6 @@ class TaskStatus(Enum):
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
-    SKIPPED = "skipped"
 
 @dataclass
 class ScanTask:
@@ -27,9 +26,6 @@ class ScanTask:
     file_size: int
     status: TaskStatus = TaskStatus.PENDING
     error: Optional[str] = None
-    
-    def __hash__(self):
-        return hash(str(self.file_path))
 
 @dataclass
 class WorkerStats:

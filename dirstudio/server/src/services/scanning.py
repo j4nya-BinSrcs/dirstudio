@@ -58,9 +58,7 @@ class ScanProgress:
 
 
 class DirectoryScanner:
-    """
-    Async directory scanner - discovers and processes files in one pass.
-    """
+    """ Async directory scanner """
     
     def __init__(
         self,
@@ -108,7 +106,7 @@ class DirectoryScanner:
         self.max_file_size: Optional[int] = None  # None = no limit
         self.min_file_size: int = 0  # Skip empty files by default
     
-    def should_exclude(self, path: Path) -> bool:
+    def _should_exclude(self, path: Path) -> bool:
         """Check if path should be excluded from scan."""
         # Check if directory should be excluded
         if path.is_dir() and path.name in self.exclude_dirs:
@@ -124,7 +122,6 @@ class DirectoryScanner:
     async def scan(self) -> FilesystemTree:
         """
         Execute scan: discover files and process them concurrently.
-        Single-pass discovery with concurrent processing.
         
         Returns:
             Complete FilesystemTree with all scanned files
@@ -208,7 +205,7 @@ class DirectoryScanner:
         try:
             for path in self.root_path.rglob("*"):
                 # Check if should exclude
-                if self.should_exclude(path):
+                if self._should_exclude(path):
                     continue
                 
                 # Only process files

@@ -1,22 +1,21 @@
 from collections import defaultdict, deque
-import json
-from pathlib import Path
 from dataclasses import dataclass, field
-import pickle
+from pathlib import Path
 from typing import Any, Callable, Iterator, Optional
 
-from .metadata import MetaTag, MetaTime, Metadata
+from .metadata import Metadata
+
 
 @dataclass
 class FileNode:
     """Represents a file in the filesystem tree."""
-    path: str
+    path: Path
     metadata: Metadata
     hashes: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "path": self.path,
+            "path": str(self.path),
             "metadata": self.metadata.to_dict(),
             "hashes": dict(self.hashes),
         }
@@ -24,7 +23,7 @@ class FileNode:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "FileNode":
         return cls(
-            path=data["path"],
+            path=Path(data["path"]),
             metadata=Metadata.from_dict(data["metadata"]),
             hashes=dict(data.get("hashes", {})),
         )
@@ -35,19 +34,19 @@ class FileNode:
     
     @property
     def name(self) -> str:
-        return Path(self.path).name
+        return self.path.name
 
 @dataclass
 class DirNode:
     """Represents a directory in the filesystem tree."""
-    path: str
+    path: Path
     metadata: Metadata
     files: list[FileNode] = field(default_factory=list)
     subdirs: list["DirNode"] = field(default_factory=list)
     
     def to_dict(self) -> dict[str, Any]:
         return {
-            "path": self.path,
+            "path": str(self.path),
             "metadata": self.metadata.to_dict(),
             "files": [file.to_dict() for file in self.files],
             "subdirs": [subdir.to_dict() for subdir in self.subdirs],
@@ -56,7 +55,7 @@ class DirNode:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "DirNode":
         return cls(
-            path=data["path"],
+            path=Path(data["path"]),
             metadata=Metadata.from_dict(data["metadata"]),
             files=[
                 FileNode.from_dict(f)
@@ -79,277 +78,286 @@ class DirNode:
         return Path(self.path).name
 
 class FilesystemTree:
-    
-    def __init__(self, root_path: str):
-        self.root_path = root_path
-        self.root: Optional[DirNode] = None 
-        self._path_index: dict[str, DirNode] = {}
-        self._stats_cache: Optional[dict[str, Any]] = None
 
-    def _chain_path(self, file_path: str) -> DirNode:
+    def __init__(self, root: Path) -> None:
+        self.root: DirNode = DirNode(root, Metadata.extract(root))
+
+    def _normalize_path(self, path: Path) -> Path:
+        return path if path.is_absolute() else self.root.path / path
+
+    def _chain_path(self, target_path: Path) -> DirNode:
         """
         Ensure all parent directories exist for a file path.
         Creates missing directories as needed.
         Args:
             file_path: Full path to a file 
         Returns:
-            Parent DirNode for the file
+            Parent DirNode for the file 
+        Raises:
+            ValueError: If file_path is not under root_path
         """
-        file_path = str(Path(file_path).resolve())
-        parent_path = str(Path(file_path).parent)
+        file_path = self._normalize_path(target_path)
+        parent_path = file_path.parent
 
-        # Check if parent already exists
-        if parent_path in self._path_index:
-            return self._path_index[parent_path]
+        # validate path is under root
+        try:
+            parent_path.relative_to(self.root.path)
+        except ValueError:
+            raise ValueError(
+                f"Path {file_path} is not under root {self.root.path}"
+            ) from None
         
-        # Build chain of parents from root to target
-        path_parts = Path(parent_path).parts
-        current_path = ""
-        current_node = None
+        # build chain from roo to target
+        try:
+            rel_parts = parent_path.relative_to(self.root.path).parts
+        except ValueError:
+            return self.root
+        
+        curr_node = self.root
+        curr_path = self.root.path
+        for part in rel_parts:
+            curr_path = curr_path / part
 
-        for i, part in enumerate(path_parts):
-            current_path = str(Path(current_path) / part) if i else part # curr_path = path if i == 0 ('/' or 'C:\')
+            # find or create subdirs
+            existing = next((dir for dir in curr_node.subdirs if dir.path == curr_path), None)
 
-            if current_path in self._path_index:
-                current_node = self._path_index[current_path]
-                continue
-
-            # Create missing directory node
-            try:
-                metadata = Metadata.extract(current_path)
-            except (FileNotFoundError, PermissionError):
-                # Create minimal dummy metadata for inaccessible dirs
-                metadata = Metadata(
-                    path=Path(current_path),
-                    size=0,
-                    tags=[MetaTag.DIRECTORY],
-                    times={MetaTime.CREATED: "unknown", 
-                           MetaTime.ACCESSED: "unknown",
-                           MetaTime.MODIFIED: "unknown"},
-                    ino=0,
-                    owner="unknown",
-                    permissions="unknown",
-                    properties={},
-                    mime=None
-                )
-
-            new_node = DirNode(path=current_path, metadata=metadata)
-            self._path_index[current_path] = new_node
-            
-            # Link to parent or set as root
-            if current_node:
-                current_node.subdirs.append(new_node)
+            if existing:
+                curr_node = existing
             else:
-                self.root = new_node
-                self.root_path = current_path
-            
-            current_node = new_node
-        
-        return current_node # type: ignore
+                new_node = DirNode(curr_path, Metadata.extract(curr_path))
+                curr_node.subdirs.append(new_node)
+                curr_node = new_node
 
-    def attach_file(self,  path: str, metadata: Metadata, hashes: dict[str, str]) -> FileNode:
+        return curr_node
+
+    def attach_file(self, path: Path, metadata: Metadata, hashes: dict[str, str]) -> FileNode:
         """
         Add a file to the tree. Automatically creates parent directories.
         Args:
-            path: File path
+            path: File path (must be under root_path)
             metadata: File metadata
-            filetype: File type classification 
+            hashes: Hash strings for the file 
         Returns:
-            Created FileNode
+            Created FileNode 
+        Raises:
+            ValueError: If path is not a file or not under root
         """
-        path = str(Path(path).resolve())
+        path = self._normalize_path(path)
+
+        if path.is_dir():
+            raise ValueError(f"Cannot attach directory as file: {path}")
+        
         file_node = FileNode(path=path, metadata=metadata, hashes=hashes)
-        
-        # Ensure parent directory chain exists
+
+        # Ensure parent directory chain exist
         parent = self._chain_path(path)
-        parent.files.append(file_node)
-        
-        self._stats_cache = None  # Invalidate cache
+
+        # check for duplicates
+        file_idx = next((i for i, f in enumerate(parent.files) if f.path == path), None)
+        if file_idx is not None:
+            # replace existing file
+            parent.files[file_idx] = file_node
+        else:
+            parent.files.append(file_node)
+
         return file_node
 
     def merge(self, other: "FilesystemTree") -> None:
         """
-        Merge another tree into this one.
-        Handles duplicates by keeping existing nodes.
+        Merge another tree into this one. 
+        overwrites any conflicting files between the trees. 
         Args:
-            other: Another FilesystemTree to merge
+            other: Another FilesystemTree to merge  
+        Raises:
+            ValueError: If roots don't match
         """
         if not other.root:
             return
         
         if not self.root:
-            self.root = other.root
-            self.root_path = other.root_path
-            self._rebuild_index()
+            self.root = DirNode.from_dict(other.root.to_dict())
             return
         
-        # Merge recursively
-        self._merge_dirs(self.root, other.root)
-        self._rebuild_index()
-        self._stats_cache = None
-
-    def _merge_dirs(self, target: DirNode, source: DirNode) -> None:
-        """Recursively merge source directory into target."""
-        # Merge files (avoid duplicates by path)
-        existing_paths = {f.path for f in target.files}
-        for file_node in source.files:
-            if file_node.path not in existing_paths:
-                target.files.append(file_node)
+        if self.root.path != other.root.path:
+            raise ValueError(
+                f"Cannot merge trees with different roots: "
+                f"{self.root.path} != {other.root.path}"
+            )
         
-        # Merge subdirectories
-        existing_subdirs = {d.path: d for d in target.subdirs}
+        # merge recursively
+        self._merge(self.root, other.root)
+
+    def _merge(self, target: DirNode, source: DirNode) -> None:
+        """Recursively merge source directory into target."""
+        # merge files
+        existing_files = {f.path: i for i, f in enumerate(target.files)}
+        for source_file in source.files:
+            if source_file.path in existing_files:
+                # overrite the files in target
+                idx = existing_files[source_file.path]
+                target.files[idx] = source_file
+            else:
+                target.files.append(source_file)
+
+        # merge directories
+        existing_subdirs = {dir.path: dir for dir in target.subdirs}
         for source_subdir in source.subdirs:
             if source_subdir.path in existing_subdirs:
-                self._merge_dirs(existing_subdirs[source_subdir.path], source_subdir)
+                self._merge(existing_subdirs[source_subdir.path], source_subdir)
             else:
                 target.subdirs.append(source_subdir)
 
-    def _rebuild_index(self): 
-        """Rebuild directory index after merging."""
+    def query_dir(self, path: Path) -> Optional[DirNode]:
+        """
+        Find a directory node by path using BFS.
+        Args:
+            path: Absolute path to directory 
+        Returns:
+            DirNode if found, None otherwise
+        """
         if not self.root:
-            return
+            return None
         
-        self._path_index.clear()
+        path = self._normalize_path(path)
+
+        if path == self.root.path:
+            return self.root
+        
         queue = deque([self.root])
-        
         while queue:
             node = queue.popleft()
-            self._path_index[node.path] = node
+            if node.path == path:
+                return node
             queue.extend(node.subdirs)
 
-    def traverse(self, filter_fn: Optional[Callable[[FileNode], bool]] = None,
-                 start_path: Optional[str] = None) -> Iterator[FileNode]:
+        return None
+    
+    def traverse(
+        self, 
+        filter_fn: Optional[Callable[[FileNode], bool]] = None,
+        start_path: Optional[Path] = None
+    ) -> Iterator[FileNode]:
         """
         Traverse all files in the tree with optional filtering.
         Args:
-            filter_fn: Optional filter function for files
-            start_path: Starting directory path (defaults to root)
+            filter_fn: Optional predicate to filter files
+            start_path: Starting directory path (defaults to root) 
         Yields:
-            FileNode instances
+            FileNode instances matching filter
         """
-        start_node = self.root
-        if start_path and start_path in self._path_index:
-            start_node = self._path_index[start_path]
+        initial_node = self.root
+        if start_path:
+            initial_node = self.query_dir(start_path)
         
-        if not start_node:
+        if not initial_node:
             return
-        
+
         # BFS traversal
-        queue = deque([start_node])
+        queue = deque([initial_node])
         while queue:
             node = queue.popleft()
-            
-            for file_node in node.files:
-                if filter_fn is None or filter_fn(file_node):
-                    yield file_node
-            
+
+            for file in node.files:
+                if not filter_fn or filter_fn(file):
+                    yield file
+
             queue.extend(node.subdirs)
 
-    def compute_stats(self, use_cache: bool = True) -> dict[str, Any]:
+    def compute_stats(self) -> dict[str, Any]:
         """
-        Compute tree statistics with optional caching.
-        Args:
-            use_cache: Use cached stats if available 
+        Compute tree statistics 
         Returns:
-            dictionary with comprehensive statistics
+            Dictionary with comprehensive statistics
         """
-        if use_cache and self._stats_cache:
-            return self._stats_cache.copy()
-        
-        if not self.root:
-            return {
-                'total_files': 0,
-                'total_dirs': 0,
-                'total_size': 0,
-                'file_types': {},
-                'extensions': {}
-            }
-        
         stats = {
             'total_files': 0,
             'total_dirs': 0,
             'total_size': 0,
             'file_types': defaultdict(int),
-            'extensions': defaultdict(int)
+            'extensions': defaultdict(int),
+            'depth': 0
         }
+
+        if not self.root:
+            return stats
         
-        # Count directories
-        queue = deque([self.root])
+        queue = deque([(self.root, 0)]) # (node, depth)
         while queue:
-            node = queue.popleft()
+            node, depth = queue.popleft()
             stats['total_dirs'] += 1
-            queue.extend(node.subdirs)
-        
-        # Count files and gather stats
-        for file_node in self.traverse():
-            stats['total_files'] += 1
-            stats['total_size'] += file_node.size
-            stats['file_types'][file_node.metadata.filetype.value] += 1
+            stats['depth'] = max(stats['depth'], depth)
             
-            ext = Path(file_node.path).suffix.lower()
-            if ext:
-                stats['extensions'][ext] += 1
+            # Process files in this directory
+            for file_node in node.files:
+                stats['total_files'] += 1
+                stats['total_size'] += file_node.size
+                stats['file_types'][file_node.metadata.filetype.value] += 1
+                
+                ext = file_node.path.suffix.lower() 
+                if ext:
+                    stats['extensions'][ext] += 1
+            
+            # Queue subdirectories
+            for subdir in node.subdirs:
+                queue.append((subdir, depth + 1))
         
+        # Convert defaultdicts to regular dicts
         stats['file_types'] = dict(stats['file_types'])
         stats['extensions'] = dict(stats['extensions'])
         
-        self._stats_cache = stats
-        return stats.copy()
-
-    def to_json(self, filepath: str, indent: int = 2) -> None:
-        """Save tree to JSON file."""
-        if not self.root:
-            raise ValueError("Cannot serialize empty tree")
-        
-        data = {
-            'root_path': self.root_path,
-            'root': self.root.to_dict(),
-            'stats': self.compute_stats()
+        return stats
+    
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Serialize the entire tree to a dictionary.
+        Returns:
+            Dictionary containing tree structure and metadata   
+        """
+        return {
+            "root": self.root.to_dict(),
+            "stats": self.compute_stats(),
         }
-        
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=indent)
-    
-    @classmethod
-    def from_json(cls, filepath: str) -> "FilesystemTree":
-        """Load tree from JSON file."""
-        with open(filepath, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        
-        tree = cls(root_path=data['root_path'])
-        tree.root = DirNode.from_dict(data['root'])
-        tree._rebuild_index()
-        return tree
-    
-    def to_pickle(self, filepath: str) -> None:
-        """Save tree to pickle file (faster, binary)."""
-        if not self.root:
-            raise ValueError("Cannot serialize empty tree")
-        
-        with open(filepath, 'wb') as f:
-            pickle.dump({'root_path': self.root_path, 'root': self.root}, f)
-    
-    @classmethod
-    def from_pickle(cls, filepath: str) -> "FilesystemTree":
-        """Load tree from pickle file."""
-        with open(filepath, 'rb') as f:
-            data = pickle.load(f)
-        
-        tree = cls(root_path=data['root_path'])
-        tree.root = data['root']
-        tree._rebuild_index()
-        return tree
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "FilesystemTree":
+        """
+        Deserialize a tree from a dictionary.
+        Args:
+            data: Dictionary produced by to_dict()
+        Returns:
+            Reconstructed FilesystemTree instance
+        Raises:
+            ValueError: If data format is invalid
+            KeyError: If required fields are missing
+        """
+        if "root" not in data:
+            raise KeyError("Missing required field: 'root'")
+        
+        # Deserialize root node
+        root_node = DirNode.from_dict(data["root"])
+        
+        # Create tree instance without calling __init__
+        # (to avoid Metadata.extract() during deserialization)
+        tree = cls.__new__(cls)
+        tree.root = root_node
+        
+        return tree
+    
     def __len__(self) -> int:
-        """Return total number of files."""
         return sum(1 for _ in self.traverse())
     
     def __repr__(self) -> str:
-        """String representation."""
+        if not self.root:
+            return f"FilesystemTree(root='{self.root.path}', empty=True)"
+            
         stats = self.compute_stats()
-        size_gb = stats['total_size'] / (1024**3)  # type: ignore
-        return (f"FilesystemTree(root={self.root_path}, "
-                f"files={stats['total_files']}, " # type: ignore
-                f"dirs={stats['total_dirs']}, " # type: ignore
-                f"size={size_gb:.2f}GB)")
+        size_gb = stats['total_size'] / (1024**3)
+        
+        return (
+            f"FilesystemTree(root='{self.root.path}', "
+            f"files={stats['total_files']}, "
+            f"dirs={stats['total_dirs']}, "
+            f"size={size_gb:.2f}GB, "
+            f"depth={stats['depth']})"
+        )
     
