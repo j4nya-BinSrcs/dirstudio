@@ -1,0 +1,12 @@
+{
+  "statistics": {
+    "exact_duplicate_groups": 0,
+    "exact_duplicate_files": 0,
+    "near_duplicate_groups": 0,
+    "near_duplicate_files": 0,
+    "total_wastage_bytes": 0,
+    "potential_savings_mb": 0.0
+  },
+  "exact_duplicates": {},
+  "near_duplicates": {}
+}

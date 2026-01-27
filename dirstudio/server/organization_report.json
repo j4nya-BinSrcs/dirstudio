@@ -1,0 +1,79 @@
+{
+  "statistics": {
+    "total_files": 22,
+    "categories": {
+      "image_file": 22
+    },
+    "top_extensions": [
+      [
+        ".png",
+        13
+      ],
+      [
+        ".jpg",
+        9
+      ]
+    ],
+    "size_distribution": {
+      "small": 15,
+      "medium": 7
+    },
+    "suggestions_count": 1
+  },
+  "suggestions": [
+    {
+      "file_count": 22,
+      "files": [
+        "Y:\\walls\\catppuccin_wall01.jpg",
+        "Y:\\walls\\catppuccin_wall04.jpg",
+        "Y:\\walls\\catppuccin_wall03.jpg",
+        "Y:\\walls\\catppuccin_wall02.png",
+        "Y:\\walls\\gruvbox_wall03.png",
+        "Y:\\walls\\gruvbox_wall04.png",
+        "Y:\\walls\\gruvbox_wall06.jpg",
+        "Y:\\walls\\gruvbox_wall01.png",
+        "Y:\\walls\\nord_wall01.jpg",
+        "Y:\\walls\\gruvbox_wall05.png",
+        "Y:\\walls\\gruvbox_wall07.png",
+        "Y:\\walls\\nord_wall02.png",
+        "Y:\\walls\\nord_wall05.jpg",
+        "Y:\\walls\\nord_wall04.png",
+        "Y:\\walls\\gruvbox_wall02.jpg",
+        "Y:\\walls\\nord_wall05.png",
+        "Y:\\walls\\nord_wall07.png",
+        "Y:\\walls\\nord_wall03.png",
+        "Y:\\walls\\nord_wall10.jpg",
+        "Y:\\walls\\nord_wall06.png",
+        "Y:\\walls\\nord_wall08.jpg",
+        "Y:\\walls\\nord_wall09.png"
+      ],
+      "target_path": "Y:\\walls\\Image",
+      "reason": "Group 22 image files",
+      "rule_name": "organize_by_category",
+      "confidence": 0.9
+    }
+  ],
+  "rules": [
+    {
+      "name": "organize_by_type",
+      "pattern": "{category}/{filename}",
+      "condition": "category",
+      "value": "*",
+      "description": "Organize by file type category"
+    },
+    {
+      "name": "organize_images_by_date",
+      "pattern": "Images/{year}/{month}/{filename}",
+      "condition": "category",
+      "value": "image",
+      "description": "Organize images by date"
+    },
+    {
+      "name": "organize_by_extension",
+      "pattern": "{extension}/{filename}",
+      "condition": "extension",
+      "value": "*",
+      "description": "Organize by file extension"
+    }
+  ]
+}

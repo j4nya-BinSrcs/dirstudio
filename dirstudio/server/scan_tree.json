@@ -1,0 +1,474 @@
+{
+  "root": {
+    "path": "Y:\\walls",
+    "metadata": {
+      "path": "Y:\\walls",
+      "size": 0,
+      "time": {
+        "CREATED": "2026-01-09T20:42:47.268406",
+        "ACCESSED": "2026-01-25T18:01:05.317482",
+        "MODIFIED": "2026-01-09T20:59:39.765305"
+      },
+      "inode": 844424930137250,
+      "owner": "0",
+      "permissions": "0o777 (rwxrwxrwx)",
+      "mime": null
+    },
+    "files": [
+      {
+        "path": "Y:\\walls\\catppuccin_wall01.jpg",
+        "metadata": {
+          "path": "Y:\\walls\\catppuccin_wall01.jpg",
+          "size": 222121,
+          "time": {
+            "CREATED": "2026-01-09T20:58:47.379007",
+            "ACCESSED": "2026-01-25T18:01:09.384659",
+            "MODIFIED": "2026-01-09T20:58:47.929136"
+          },
+          "inode": 844424930137273,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/jpeg"
+        },
+        "hashes": {
+          "sha256": "80533872642bf9568878d055402beacfe479e8b88ac1397ee43baa77acb04e0b",
+          "phash": "9692950906408640278"
+        }
+      },
+      {
+        "path": "Y:\\walls\\catppuccin_wall04.jpg",
+        "metadata": {
+          "path": "Y:\\walls\\catppuccin_wall04.jpg",
+          "size": 181383,
+          "time": {
+            "CREATED": "2026-01-09T20:59:39.765278",
+            "ACCESSED": "2026-01-25T18:01:09.384659",
+            "MODIFIED": "2026-01-09T20:59:40.263140"
+          },
+          "inode": 844424930137276,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/jpeg"
+        },
+        "hashes": {
+          "sha256": "197ae1c8fa0b765dc49dca4b34d75526cd582f207b05dd95c72aae9db9e20b49",
+          "phash": "10052532320127835487"
+        }
+      },
+      {
+        "path": "Y:\\walls\\catppuccin_wall03.jpg",
+        "metadata": {
+          "path": "Y:\\walls\\catppuccin_wall03.jpg",
+          "size": 292868,
+          "time": {
+            "CREATED": "2026-01-09T20:59:19.839845",
+            "ACCESSED": "2026-01-25T18:01:09.390688",
+            "MODIFIED": "2026-01-09T20:59:20.652099"
+          },
+          "inode": 844424930137275,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/jpeg"
+        },
+        "hashes": {
+          "sha256": "6cc6228fbd2d978466cc62e7b2672383ac2d0435672fbd603bda31ea0d8c51cb",
+          "phash": "11050261757811085878"
+        }
+      },
+      {
+        "path": "Y:\\walls\\catppuccin_wall02.png",
+        "metadata": {
+          "path": "Y:\\walls\\catppuccin_wall02.png",
+          "size": 219070,
+          "time": {
+            "CREATED": "2026-01-09T20:59:06.289845",
+            "ACCESSED": "2026-01-25T18:01:09.384659",
+            "MODIFIED": "2026-01-09T20:59:06.707468"
+          },
+          "inode": 844424930137274,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/png"
+        },
+        "hashes": {
+          "sha256": "5b325a70707d5849ead5015d188759cb85ea0cd5073b18eacd8cfdc16e1a611c",
+          "phash": "15694031184469268893"
+        }
+      },
+      {
+        "path": "Y:\\walls\\gruvbox_wall03.png",
+        "metadata": {
+          "path": "Y:\\walls\\gruvbox_wall03.png",
+          "size": 93193,
+          "time": {
+            "CREATED": "2026-01-09T20:54:05.450902",
+            "ACCESSED": "2026-01-25T18:01:09.503576",
+            "MODIFIED": "2026-01-09T20:54:05.470048"
+          },
+          "inode": 844424930137266,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/png"
+        },
+        "hashes": {
+          "sha256": "a173465641ce4dad690461e85345f32f1ef4c0a0e98c726a3420c276464e0458",
+          "phash": "14368479736913030358"
+        }
+      },
+      {
+        "path": "Y:\\walls\\gruvbox_wall04.png",
+        "metadata": {
+          "path": "Y:\\walls\\gruvbox_wall04.png",
+          "size": 273781,
+          "time": {
+            "CREATED": "2026-01-09T20:54:31.645368",
+            "ACCESSED": "2026-01-25T18:01:09.556638",
+            "MODIFIED": "2026-01-09T20:54:31.665832"
+          },
+          "inode": 844424930137269,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/png"
+        },
+        "hashes": {
+          "sha256": "8bf197b2753e9436bfd23956b3d6784f37bccabc5ebc3ab3b7e999ce23c310cc",
+          "phash": "15795081319565347878"
+        }
+      },
+      {
+        "path": "Y:\\walls\\gruvbox_wall06.jpg",
+        "metadata": {
+          "path": "Y:\\walls\\gruvbox_wall06.jpg",
+          "size": 309454,
+          "time": {
+            "CREATED": "2026-01-09T20:55:24.807817",
+            "ACCESSED": "2026-01-25T18:01:09.604787",
+            "MODIFIED": "2026-01-09T20:55:24.831380"
+          },
+          "inode": 844424930137271,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/jpeg"
+        },
+        "hashes": {
+          "sha256": "4ae2f4c93b1c78e15318358aaf9d397a3c37eeb50a4dd6dcf530f76df5056b70",
+          "phash": "10563866992018791615"
+        }
+      },
+      {
+        "path": "Y:\\walls\\gruvbox_wall01.png",
+        "metadata": {
+          "path": "Y:\\walls\\gruvbox_wall01.png",
+          "size": 2755860,
+          "time": {
+            "CREATED": "2026-01-09T20:53:09.328806",
+            "ACCESSED": "2026-01-25T18:01:09.588631",
+            "MODIFIED": "2026-01-09T20:53:09.410457"
+          },
+          "inode": 844424930137264,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/png"
+        },
+        "hashes": {
+          "sha256": "df732d59e8df6b689f321a611c560778aff9e2a6abeac4b5d8d91e46cd42cfbb",
+          "phash": "10753313762116924714"
+        }
+      },
+      {
+        "path": "Y:\\walls\\nord_wall01.jpg",
+        "metadata": {
+          "path": "Y:\\walls\\nord_wall01.jpg",
+          "size": 366100,
+          "time": {
+            "CREATED": "2026-01-09T20:43:21.990139",
+            "ACCESSED": "2026-01-25T18:01:09.676158",
+            "MODIFIED": "2026-01-09T20:43:22.301050"
+          },
+          "inode": 844424930137251,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/jpeg"
+        },
+        "hashes": {
+          "sha256": "7ad64ec861530fb18fdaa2dc63898b4f58e49256b35c9c81125c335c6ea91a9f",
+          "phash": "10780153703190901330"
+        }
+      },
+      {
+        "path": "Y:\\walls\\gruvbox_wall05.png",
+        "metadata": {
+          "path": "Y:\\walls\\gruvbox_wall05.png",
+          "size": 1536257,
+          "time": {
+            "CREATED": "2026-01-09T20:55:03.276861",
+            "ACCESSED": "2026-01-25T18:01:09.763746",
+            "MODIFIED": "2026-01-09T20:55:03.326294"
+          },
+          "inode": 844424930137270,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/png"
+        },
+        "hashes": {
+          "sha256": "2f7674c3f640dd72d9fb952b5c5d3c6a837a67386acd82c5a4f2d039861db823",
+          "phash": "13092838826622122173"
+        }
+      },
+      {
+        "path": "Y:\\walls\\gruvbox_wall07.png",
+        "metadata": {
+          "path": "Y:\\walls\\gruvbox_wall07.png",
+          "size": 1848892,
+          "time": {
+            "CREATED": "2026-01-09T20:55:54.714204",
+            "ACCESSED": "2026-01-25T18:01:09.734251",
+            "MODIFIED": "2026-01-09T20:55:54.775439"
+          },
+          "inode": 844424930137272,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/png"
+        },
+        "hashes": {
+          "sha256": "1ba3972ab519f655848fc4cf6671f5f6a594f456cfe3e9d9d7ef38e593c2afc4",
+          "phash": "9332457559635747628"
+        }
+      },
+      {
+        "path": "Y:\\walls\\nord_wall02.png",
+        "metadata": {
+          "path": "Y:\\walls\\nord_wall02.png",
+          "size": 23115,
+          "time": {
+            "CREATED": "2026-01-09T20:44:38.104736",
+            "ACCESSED": "2026-01-25T18:01:09.716505",
+            "MODIFIED": "2026-01-09T20:44:38.115499"
+          },
+          "inode": 844424930137252,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/png"
+        },
+        "hashes": {
+          "sha256": "cfc1e9207e44f94695dc83ae2b2744199f99eebc6c824ac08d8ea42cb9758190",
+          "phash": "9600587956994665609"
+        }
+      },
+      {
+        "path": "Y:\\walls\\nord_wall05.jpg",
+        "metadata": {
+          "path": "Y:\\walls\\nord_wall05.jpg",
+          "size": 86006,
+          "time": {
+            "CREATED": "2026-01-09T20:46:31.486901",
+            "ACCESSED": "2026-01-25T18:01:09.835418",
+            "MODIFIED": "2026-01-09T20:46:31.508383"
+          },
+          "inode": 844424930137255,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/jpeg"
+        },
+        "hashes": {
+          "sha256": "ce00a80ba7383e1d82e367ea229e39a0a791fd74989f5522e7d75d1cf98b9eaf",
+          "phash": "12219486984310272661"
+        }
+      },
+      {
+        "path": "Y:\\walls\\nord_wall04.png",
+        "metadata": {
+          "path": "Y:\\walls\\nord_wall04.png",
+          "size": 368556,
+          "time": {
+            "CREATED": "2026-01-09T20:46:03.981462",
+            "ACCESSED": "2026-01-25T18:01:09.892568",
+            "MODIFIED": "2026-01-09T20:46:04.007055"
+          },
+          "inode": 844424930137254,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/png"
+        },
+        "hashes": {
+          "sha256": "c59478fbe3ca82f58202e44a055bb67eb48165db067dd6fe96161ce28af49d0b",
+          "phash": "14400172638537222961"
+        }
+      },
+      {
+        "path": "Y:\\walls\\gruvbox_wall02.jpg",
+        "metadata": {
+          "path": "Y:\\walls\\gruvbox_wall02.jpg",
+          "size": 3587000,
+          "time": {
+            "CREATED": "2026-01-09T20:53:30.784358",
+            "ACCESSED": "2026-01-25T18:01:09.688231",
+            "MODIFIED": "2026-01-09T20:53:30.892278"
+          },
+          "inode": 844424930137265,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/jpeg"
+        },
+        "hashes": {
+          "sha256": "d7f394ba2acadc24bee905dc95d9acadc212af925287c7345c9d5a0b36bf29e0",
+          "phash": "15186810187157369049"
+        }
+      },
+      {
+        "path": "Y:\\walls\\nord_wall05.png",
+        "metadata": {
+          "path": "Y:\\walls\\nord_wall05.png",
+          "size": 218087,
+          "time": {
+            "CREATED": "2026-01-09T20:47:17.259342",
+            "ACCESSED": "2026-01-25T18:01:09.960367",
+            "MODIFIED": "2026-01-09T20:47:17.276268"
+          },
+          "inode": 844424930137256,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/png"
+        },
+        "hashes": {
+          "sha256": "9c48f0e81e2cd5ec163be573ea1321151b3981719cac9e9b77ec1ba6f42c3665",
+          "phash": "14973945583757375032"
+        }
+      },
+      {
+        "path": "Y:\\walls\\nord_wall07.png",
+        "metadata": {
+          "path": "Y:\\walls\\nord_wall07.png",
+          "size": 719760,
+          "time": {
+            "CREATED": "2026-01-09T20:48:28.428402",
+            "ACCESSED": "2026-01-25T18:01:09.985572",
+            "MODIFIED": "2026-01-09T20:48:28.457186"
+          },
+          "inode": 844424930137259,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/png"
+        },
+        "hashes": {
+          "sha256": "ea268c9d741667a42b09437116d42c303ac84634ac63a9c343b667e99af22802",
+          "phash": "10931196489592294814"
+        }
+      },
+      {
+        "path": "Y:\\walls\\nord_wall03.png",
+        "metadata": {
+          "path": "Y:\\walls\\nord_wall03.png",
+          "size": 5909666,
+          "time": {
+            "CREATED": "2026-01-09T20:45:04.380938",
+            "ACCESSED": "2026-01-25T18:01:09.985572",
+            "MODIFIED": "2026-01-09T20:45:04.530740"
+          },
+          "inode": 844424930137253,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/png"
+        },
+        "hashes": {
+          "sha256": "52208412ec3fd95033bfea899f38fc6cfb68324cb6e15ae302e64b4eb80d4c24",
+          "phash": "10096633806072673168"
+        }
+      },
+      {
+        "path": "Y:\\walls\\nord_wall10.jpg",
+        "metadata": {
+          "path": "Y:\\walls\\nord_wall10.jpg",
+          "size": 193921,
+          "time": {
+            "CREATED": "2026-01-09T20:49:47.606135",
+            "ACCESSED": "2026-01-25T18:01:10.052920",
+            "MODIFIED": "2026-01-09T20:49:47.632248"
+          },
+          "inode": 844424930137263,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/jpeg"
+        },
+        "hashes": {
+          "sha256": "9753f2e1616ad3efc9ad2259893a0a53fcb01f51ae539d985d178a4178aa6084",
+          "phash": "14755144014931124537"
+        }
+      },
+      {
+        "path": "Y:\\walls\\nord_wall06.png",
+        "metadata": {
+          "path": "Y:\\walls\\nord_wall06.png",
+          "size": 1621574,
+          "time": {
+            "CREATED": "2026-01-09T20:47:52.922301",
+            "ACCESSED": "2026-01-25T18:01:10.080456",
+            "MODIFIED": "2026-01-09T20:47:52.969719"
+          },
+          "inode": 844424930137258,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/png"
+        },
+        "hashes": {
+          "sha256": "2812d54284d68be1958855e46d4f01804cffac80ea795394504342b363e97ad0",
+          "phash": "9540395597227017048"
+        }
+      },
+      {
+        "path": "Y:\\walls\\nord_wall08.jpg",
+        "metadata": {
+          "path": "Y:\\walls\\nord_wall08.jpg",
+          "size": 1280208,
+          "time": {
+            "CREATED": "2026-01-09T20:48:51.429259",
+            "ACCESSED": "2026-01-25T18:01:10.080456",
+            "MODIFIED": "2026-01-09T20:48:51.474764"
+          },
+          "inode": 844424930137260,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/jpeg"
+        },
+        "hashes": {
+          "sha256": "95a5c1194c667f09efbefc2ef08f85a554373904f09388a04d8dc2fb50982146",
+          "phash": "10436096368461912611"
+        }
+      },
+      {
+        "path": "Y:\\walls\\nord_wall09.png",
+        "metadata": {
+          "path": "Y:\\walls\\nord_wall09.png",
+          "size": 819500,
+          "time": {
+            "CREATED": "2026-01-09T20:49:18.366825",
+            "ACCESSED": "2026-01-25T18:01:10.175546",
+            "MODIFIED": "2026-01-09T20:49:18.401342"
+          },
+          "inode": 844424930137262,
+          "owner": "0",
+          "permissions": "0o666 (rw-rw-rw-)",
+          "mime": "image/png"
+        },
+        "hashes": {
+          "sha256": "6b1c453c02254acd13e83f07bfb466690a77f842545ea55fa227c889f1bfeba9",
+          "phash": "10773008875559938716"
+        }
+      }
+    ],
+    "subdirs": []
+  },
+  "stats": {
+    "total_files": 22,
+    "total_dirs": 1,
+    "total_size": 22926372,
+    "file_types": {
+      "image_file": 22
+    },
+    "extensions": {
+      ".jpg": 9,
+      ".png": 13
+    },
+    "depth": 0
+  }
+}
