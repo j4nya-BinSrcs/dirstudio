@@ -1,22 +1,23 @@
 """
-DirStudio main entry point with full analysis pipeline.
+DirStudio main entry point.
+Supports both CLI mode and API server mode.
 """
-import json
 import sys
+import json
 from pathlib import Path
+
+# Add src to path if running from project root
+src_path = Path(__file__).parent
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
 from services.scan import Scanner
 from services.duplicate import DuplicateDetector
 from services.organize import Organizer
 
 
-def main():
-    """Main entry point."""
-    
-    test_path = "."
-    
-    if len(sys.argv) > 1:
-        test_path = sys.argv[1]
+def cli_mode(test_path: str):
+    """Run in CLI mode with full analysis pipeline."""
     
     print("=" * 60)
     print("DirStudio - Directory Intelligence System")
@@ -27,10 +28,7 @@ def main():
     print("STEP 1: Scanning directory...")
     print("-" * 60)
     
-    scanner = Scanner(
-        max_depth=5,
-        num_workers=4
-    )
+    scanner = Scanner(max_depth=5, num_workers=4)
     
     try:
         tree = scanner.scan(
@@ -134,6 +132,56 @@ def main():
         import traceback
         traceback.print_exc()
         sys.exit(1)
+
+
+def server_mode():
+    """Run in API server mode."""
+    import uvicorn
+    
+    print("=" * 60)
+    print("DirStudio API Server")
+    print("=" * 60)
+    print()
+    print("Starting server on http://0.0.0.0:8000")
+    print("API docs available at http://0.0.0.0:8000/docs")
+    print()
+    
+    # Import here to avoid issues
+    from api.api import app
+    
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8000,
+        log_level="info"
+    )
+
+
+def main():
+    """Main entry point."""
+    
+    # Check for server mode flag
+    if len(sys.argv) > 1 and sys.argv[1] in ('--server', '-s', 'server'):
+        server_mode()
+    elif len(sys.argv) > 1 and sys.argv[1] in ('--help', '-h'):
+        print("DirStudio - Directory Intelligence System")
+        print()
+        print("Usage:")
+        print("  python main.py [path]           # CLI mode: scan directory")
+        print("  python main.py --server         # Start API server")
+        print("  python main.py --help           # Show this help")
+        print()
+        print("CLI mode examples:")
+        print("  python main.py                  # Scan current directory")
+        print("  python main.py /path/to/scan    # Scan specific directory")
+        print()
+        print("Server mode:")
+        print("  python main.py --server")
+        print("  API docs: http://localhost:8000/docs")
+    else:
+        # CLI mode
+        test_path = sys.argv[1] if len(sys.argv) > 1 else "."
+        cli_mode(test_path)
 
 
 if __name__ == "__main__":

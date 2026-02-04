@@ -7,7 +7,7 @@ from typing import Optional
 
 import config
 from core.filesystem import FileNode
-from .hash import hamming_distance
+from services.hash import hamming_distance
 
 
 @dataclass
@@ -35,10 +35,13 @@ class DuplicateGroup:
             return
         
         # Use most recently modified
-        self.representative = max(
-            self.files,
-            key=lambda f: f.metadata.time.get('MODIFIED', '')
-        )
+        try:
+            self.representative = max(
+                self.files,
+                key=lambda f: f.metadata.time.get('MODIFIED', '') or '' # type: ignore
+            )
+        except (ValueError, AttributeError):
+            self.representative = self.files[0] if self.files else None
     
     def to_dict(self) -> dict:
         """Convert to dictionary."""
