@@ -1,259 +1,247 @@
 """
-Intelligent file organization service.
+AI-powered file organization using Mistral AI via LangChain.
 """
-from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime
-from pathlib import Path
-from typing import Optional
+from typing import List
+import json
+import os
 
-import config
-from core.filesystem import FileNode
-from core.metadata import FileType
-
-
-@dataclass
-class OrganizationRule:
-    """Organization rule definition."""
-    
-    name: str
-    pattern: str
-    condition: str
-    value: any
-    description: str = ""
-    
-    def to_dict(self) -> dict:
-        return {
-            'name': self.name,
-            'pattern': self.pattern,
-            'condition': self.condition,
-            'value': str(self.value),
-            'description': self.description
-        }
+from core.filesystem import FileNode, FilesystemTree
 
 
 @dataclass
 class OrganizationSuggestion:
-    """Organization suggestion for files."""
+    """AI-generated organization suggestion."""
     
-    files: list[FileNode]
     target_path: str
     reason: str
-    rule_name: str
-    confidence: float = 1.0
+    files: List[str]
+    confidence: float
     
     def to_dict(self) -> dict:
         return {
-            'file_count': len(self.files),
-            'files': [str(f.path) for f in self.files],
             'target_path': self.target_path,
             'reason': self.reason,
-            'rule_name': self.rule_name,
+            'files': self.files,
+            'file_count': len(self.files),
             'confidence': self.confidence
         }
 
 
-class Organizer:
+class AIOrganizer:
     """
-    Intelligent file organization system.
+    AI-powered file organization using Mistral via LangChain.
+    Reads MISTRAL_API_KEY from environment.
     """
     
-    def __init__(self, base_path: str):
-        self.base_path = Path(base_path)
-        self.rules: list[OrganizationRule] = []
-        self.suggestions: list[OrganizationSuggestion] = []
+    SYSTEM_PROMPT = """You are an expert file organization assistant. Analyze the filesystem tree and suggest intelligent organization strategies.
+
+Your task:
+1. Identify patterns (file types, naming conventions, dates, projects, topics)
+2. Suggest logical folder structures
+3. Group related files together
+4. Provide clear, actionable recommendations
+
+IMPORTANT: Respond ONLY with valid JSON in this exact format:
+{
+  "suggestions": [
+    {
+      "target_path": "path/to/folder",
+      "reason": "Clear explanation of why these files belong together",
+      "files": ["file1.txt", "file2.pdf"],
+      "confidence": 0.85
+    }
+  ]
+}
+
+Rules:
+- confidence must be between 0.0 and 1.0
+- Group files logically (by type, project, date, topic)
+- Avoid over-organizing (don't create too many folders)
+- target_path should be relative paths
+- Be practical and user-friendly
+- Base suggestions on actual file names and structure in the tree"""
     
-    def add_rule(self, rule: OrganizationRule) -> None:
-        """Add an organization rule."""
-        self.rules.append(rule)
-    
-    def create_default_rules(self) -> None:
-        """Create default organization rules."""
-        self.rules = [
-            OrganizationRule(
-                name="organize_by_type",
-                pattern="{category}/{filename}",
-                condition="category",
-                value="*",
-                description="Organize by file type category"
-            ),
-            OrganizationRule(
-                name="organize_images_by_date",
-                pattern="Images/{year}/{month}/{filename}",
-                condition="category",
-                value="image",
-                description="Organize images by date"
-            ),
-            OrganizationRule(
-                name="organize_by_extension",
-                pattern="{extension}/{filename}",
-                condition="extension",
-                value="*",
-                description="Organize by file extension"
-            )
-        ]
-    
-    def _categorize_by_type(self, files: list[FileNode]) -> dict[str, list[FileNode]]:
-        """Group files by type."""
-        categories = defaultdict(list)
-        
-        for file_node in files:
-            category = file_node.metadata.filetype.value
-            categories[category].append(file_node)
-        
-        return dict(categories)
-    
-    def _categorize_by_extension(self, files: list[FileNode]) -> dict[str, list[FileNode]]:
-        """Group files by extension."""
-        extensions = defaultdict(list)
-        
-        for file_node in files:
-            ext = file_node.path.suffix or 'no_extension'
-            extensions[ext].append(file_node)
-        
-        return dict(extensions)
-    
-    def _categorize_by_size(self, files: list[FileNode]) -> dict[str, list[FileNode]]:
-        """Group files by size."""
-        sizes = {
-            'tiny': [],      # < 1KB
-            'small': [],     # 1KB - 1MB
-            'medium': [],    # 1MB - 100MB
-            'large': [],     # 100MB - 1GB
-            'huge': []       # > 1GB
-        }
-        
-        for file_node in files:
-            size = file_node.size
-            if size < 1024:
-                sizes['tiny'].append(file_node)
-            elif size < 1024 * 1024:
-                sizes['small'].append(file_node)
-            elif size < 100 * 1024 * 1024:
-                sizes['medium'].append(file_node)
-            elif size < 1024 * 1024 * 1024:
-                sizes['large'].append(file_node)
-            else:
-                sizes['huge'].append(file_node)
-        
-        return {k: v for k, v in sizes.items() if v}
-    
-    def _categorize_by_date(self, files: list[FileNode]) -> dict[str, list[FileNode]]:
-        """Group files by date."""
-        dates = defaultdict(list)
-        
-        for file_node in files:
-            modified = file_node.metadata.time.get('MODIFIED')
-            if modified and modified != 'unknown':
-                try:
-                    dt = datetime.fromisoformat(modified)
-                    key = f"{dt.year}/{dt.month:02d}"
-                    dates[key].append(file_node)
-                except (ValueError, AttributeError):
-                    continue
-        
-        return dict(dates)
-    
-    def suggest_by_category(self, files: list[FileNode]) -> list[OrganizationSuggestion]:
-        """Suggest organizing by category."""
-        suggestions = []
-        categories = self._categorize_by_type(files)
-        
-        for category, cat_files in categories.items():
-            if len(cat_files) < 3:
-                continue
-            
-            target = self.base_path / category.replace('_file', '').title()
-            suggestion = OrganizationSuggestion(
-                files=cat_files,
-                target_path=str(target),
-                reason=f"Group {len(cat_files)} {category.replace('_file', '')} files",
-                rule_name="organize_by_category",
-                confidence=0.9
-            )
-            suggestions.append(suggestion)
-        
-        return suggestions
-    
-    def suggest_by_date(self, files: list[FileNode]) -> list[OrganizationSuggestion]:
-        """Suggest organizing images by date."""
-        suggestions = []
-        
-        # Only for images
-        image_files = [
-            f for f in files 
-            if f.metadata.filetype == FileType.IMAGE
-        ]
-        
-        if not image_files:
-            return suggestions
-        
-        dates = self._categorize_by_date(image_files)
-        
-        for date_key, date_files in dates.items():
-            if len(date_files) < 5:
-                continue
-            
-            target = self.base_path / "Images" / date_key
-            suggestion = OrganizationSuggestion(
-                files=date_files,
-                target_path=str(target),
-                reason=f"Group {len(date_files)} images from {date_key}",
-                rule_name="organize_images_by_date",
-                confidence=0.85
-            )
-            suggestions.append(suggestion)
-        
-        return suggestions
-    
-    def suggest_organization(self, files: list[FileNode]) -> list[OrganizationSuggestion]:
+    def __init__(self, base_path: str = ".", temperature: float = 0.7):
         """
-        Generate all organization suggestions.
+        Initialize AI organizer with Mistral.
+        
+        Environment variables:
+            MISTRAL_API_KEY - Mistral API key (required)
         
         Args:
-            files: List of file nodes
+            base_path: Base path for organization
+            temperature: LLM temperature (0.0-1.0)
+        """
+        self.base_path = base_path
+        self.temperature = temperature
+        self.llm = self._create_llm()
+    
+    def _create_llm(self):
+        """Create LangChain Mistral LLM."""
+        try:
+            from langchain_mistralai import ChatMistralAI
+        except ImportError:
+            raise ImportError(
+                "langchain-mistralai required. Install: pip install langchain-mistralai"
+            )
+        
+        api_key = os.getenv('MISTRAL_API_KEY')
+        if not api_key:
+            raise ValueError(
+                "MISTRAL_API_KEY not found in environment variables. "
+            )
+        
+        return ChatMistralAI(
+            model="mistral-medium-3.1",
+            temperature=self.temperature,
+            api_key=api_key
+        )
+    
+    def _tree_to_compact_json(self, tree: FilesystemTree, max_depth: int = 5) -> str:
+        """
+        Convert filesystem tree to compact JSON representation.
+        Includes file names, types, sizes, and structure.
+        """
+        def node_to_dict(node, current_depth=0):
+            from core.filesystem import FileNode, DirNode
+            
+            # Limit depth to avoid token overflow
+            if current_depth > max_depth:
+                return None
+            
+            if isinstance(node, FileNode):
+                return {
+                    'type': 'file',
+                    'name': node.name,
+                    'size': node.size,
+                    'file_type': node.metadata.filetype.value,
+                    'extension': node.path.suffix
+                }
+            elif isinstance(node, DirNode):
+                children = []
+                
+                # Add files (limit to 50 per directory)
+                for child in node.files[:50]:
+                    child_dict = node_to_dict(child, current_depth)
+                    if child_dict:
+                        children.append(child_dict)
+                
+                # Add subdirectories (limit to 20)
+                for child in node.subdirs[:20]:
+                    child_dict = node_to_dict(child, current_depth + 1)
+                    if child_dict:
+                        children.append(child_dict)
+                
+                return {
+                    'type': 'dir',
+                    'name': node.name,
+                    'children': children
+                }
+            
+            return None
+        
+        tree_dict = node_to_dict(tree.root)
+        return json.dumps(tree_dict, indent=2)
+    
+    def _parse_llm_response(self, response: str) -> List[OrganizationSuggestion]:
+        """Parse LLM JSON response into suggestions."""
+        try:
+            # Extract JSON from response
+            response = response.strip()
+            
+            # Find JSON block
+            start = response.find('{')
+            end = response.rfind('}') + 1
+            
+            if start != -1 and end > start:
+                json_str = response[start:end]
+            else:
+                json_str = response
+            
+            data = json.loads(json_str)
+            
+            suggestions = []
+            for item in data.get('suggestions', []):
+                suggestion = OrganizationSuggestion(
+                    target_path=f"{self.base_path}/{item['target_path']}",
+                    reason=item['reason'],
+                    files=item['files'],
+                    confidence=float(item.get('confidence', 0.8))
+                )
+                suggestions.append(suggestion)
+            
+            return suggestions
+            
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
+            print(f"Error parsing LLM response: {e}")
+            print(f"Response was: {response[:500]}...")
+            return []
+    
+    def analyze(self, tree: FilesystemTree) -> List[OrganizationSuggestion]:
+        """
+        Analyze filesystem tree and generate organization suggestions.
+        
+        Args:
+            tree: FilesystemTree to analyze
         
         Returns:
             List of organization suggestions
         """
-        self.suggestions.clear()
+        # Convert tree to compact JSON
+        tree_json = self._tree_to_compact_json(tree)
         
-        # Category-based
-        self.suggestions.extend(self.suggest_by_category(files))
+        # Build prompt
+        prompt = f"""Analyze this filesystem tree and suggest how to organize the files.
+
+Filesystem Tree:
+{tree_json}
+
+Provide organization suggestions in JSON format. Focus on:
+- Grouping related files
+- Creating logical folder structures
+- Identifying patterns in file names
+- Organizing by type, date, or project
+
+Remember: Respond ONLY with valid JSON matching the required format."""
         
-        # Date-based for images
-        self.suggestions.extend(self.suggest_by_date(files))
+        # Get LLM response using LangChain
+        from langchain_core.messages import SystemMessage, HumanMessage
         
-        # Sort by confidence
-        self.suggestions.sort(key=lambda s: s.confidence, reverse=True)
+        messages = [
+            SystemMessage(content=self.SYSTEM_PROMPT),
+            HumanMessage(content=prompt)
+        ]
         
-        return self.suggestions
+        response = self.llm.invoke(messages)
+        
+        # Parse response
+        suggestions = self._parse_llm_response(response.content)
+        
+        return suggestions
     
-    def get_statistics(self, files: list[FileNode]) -> dict:
-        """Get organization statistics."""
-        categories = self._categorize_by_type(files)
-        extensions = self._categorize_by_extension(files)
-        sizes = self._categorize_by_size(files)
+    def generate_report(self, tree: FilesystemTree) -> dict:
+        """
+        Generate complete organization report.
+        
+        Args:
+            tree: FilesystemTree to analyze
+        
+        Returns:
+            Report dictionary with suggestions and statistics
+        """
+        suggestions = self.analyze(tree)
+        
+        # Get stats from tree
+        stats = tree.compute_stats()
         
         return {
-            'total_files': len(files),
-            'categories': {k: len(v) for k, v in categories.items()},
-            'top_extensions': sorted(
-                [(k, len(v)) for k, v in extensions.items()],
-                key=lambda x: x[1],
-                reverse=True
-            )[:10],
-            'size_distribution': {k: len(v) for k, v in sizes.items()},
-            'suggestions_count': len(self.suggestions)
-        }
-    
-    def generate_report(self, files: list[FileNode]) -> dict:
-        """Generate comprehensive organization report."""
-        suggestions = self.suggest_organization(files)
-        stats = self.get_statistics(files)
-        
-        return {
-            'statistics': stats,
+            'statistics': {
+                'total_files': stats['total_files'],
+                'total_dirs': stats['total_dirs'],
+                'file_types': stats['file_types']
+            },
             'suggestions': [s.to_dict() for s in suggestions],
-            'rules': [r.to_dict() for r in self.rules]
+            'ai_powered': True,
+            'model': 'mistral-large-latest'
         }

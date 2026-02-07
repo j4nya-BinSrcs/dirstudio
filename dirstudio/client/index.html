@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DirStudio - Directory Intelligence Platform</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Header Component -->
+    <div id="header-container"></div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar Component -->
+        <div id="sidebar-container"></div>
+
+        <!-- Content Area -->
+        <main class="content-area">
+            <!-- Tabs Navigation -->
+            <div class="tabs-container">
+                <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview">
+                            <i class="fas fa-th-large"></i>Overview
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tree">
+                            <i class="fas fa-sitemap"></i>Tree
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#duplicates">
+                            <i class="fas fa-copy"></i>Duplicates
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#analysis">
+                            <i class="fas fa-chart-bar"></i>Analysis
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="tab-content-area">
+                <div class="tab-content">
+                    <!-- Overview Tab -->
+                    <div class="tab-pane fade show active" id="overview">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <div class="stat-card">
+                                    <div class="stat-label">Total Files</div>
+                                    <div class="d-flex align-items-end">
+                                        <div class="stat-value" id="totalFiles">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="stat-card">
+                                    <div class="stat-label">Total Size</div>
+                                    <div class="d-flex align-items-end">
+                                        <div class="stat-value" id="totalSize">0 B</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="stat-card">
+                                    <div class="stat-label">Directories</div>
+                                    <div class="d-flex align-items-end">
+                                        <div class="stat-value" id="totalDirs">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="content-card mb-4">
+                            <div class="content-card-title">File Type Distribution</div>
+                            <div id="fileTypeChart" class="chart-container"></div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="content-card">
+                                    <div class="content-card-title">Largest Files</div>
+                                    <div id="largestFilesList"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="content-card">
+                                    <div class="content-card-title">File Extensions</div>
+                                    <div id="extensionsList"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tree Tab -->
+                    <div class="tab-pane fade" id="tree">
+                        <div class="content-card">
+                            <div class="content-card-title">Directory Structure</div>
+                            <div id="directoryTree"></div>
+                        </div>
+                    </div>
+
+                    <!-- Duplicates Tab -->
+                    <div class="tab-pane fade" id="duplicates">
+                        <div class="content-card">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <div class="content-card-title mb-0">Duplicate Files</div>
+                                <button class="btn btn-danger btn-sm" onclick="cleanDuplicates()">
+                                    <i class="fas fa-trash me-2"></i>Clean Selected
+                                </button>
+                            </div>
+                            <div id="duplicateGroups"></div>
+                        </div>
+                    </div>
+
+                    <!-- Analysis Tab -->
+                    <div class="tab-pane fade" id="analysis">
+                        <div class="content-card mb-4">
+                            <div class="content-card-title">File Statistics</div>
+                            <div id="analysisStats"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Footer Component -->
+    <div id="footer-container"></div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

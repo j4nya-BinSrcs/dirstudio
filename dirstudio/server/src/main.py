@@ -13,7 +13,6 @@ if str(src_path) not in sys.path:
 
 from services.scan import Scanner
 from services.duplicate import DuplicateDetector
-from services.organize import Organizer
 
 
 def cli_mode(test_path: str):
@@ -76,22 +75,11 @@ def cli_mode(test_path: str):
         # STEP 3: Organization suggestions
         print()
         print("=" * 60)
-        print("STEP 3: Organization suggestions...")
+        print("STEP 3: AI Organization suggestions...")
         print("-" * 60)
-        
-        organizer = Organizer(test_path)
-        organizer.create_default_rules()
-        
-        report = organizer.generate_report(files)
-        
-        print(f"\nFile categories:")
-        for cat, count in report['statistics']['categories'].items():
-            print(f"  {cat}: {count}")
-        
-        print(f"\nSuggestions: {len(report['suggestions'])}")
-        for i, sug in enumerate(report['suggestions'][:3], 1):
-            print(f"  {i}. {sug['reason']}")
-            print(f"     Confidence: {sug['confidence']:.0%}")
+        print("(Requires MISTRAL_API_KEY in .env)")
+        print("Use API endpoint: POST /api/scans/{id}/organize")
+        print()
         
         # STEP 4: Export results
         print()
@@ -116,12 +104,6 @@ def cli_mode(test_path: str):
             json.dump(dup_data, f, indent=2, default=str)
         print(f"Duplicates: {dup_file}")
         
-        # Save organization report
-        org_file = Path("organization_report.json")
-        with open(org_file, 'w') as f:
-            json.dump(report, f, indent=2, default=str)
-        print(f"Organization: {org_file}")
-        
         print()
         print("=" * 60)
         print("✓ Analysis complete")
@@ -145,8 +127,11 @@ def server_mode():
     print("Starting server on http://0.0.0.0:8000")
     print("API docs available at http://0.0.0.0:8000/docs")
     print()
+    print("Make sure to set MISTRAL_API_KEY in .env for AI features")
+    print()
     
     # Import here to avoid issues
+    # try:
     from api.api import app
     
     uvicorn.run(
@@ -155,6 +140,10 @@ def server_mode():
         port=8000,
         log_level="info"
     )
+    # except ImportError as e:
+    #     print(f"Error importing API: {e}")
+    #     print("Make sure you're in the correct directory")
+    #     sys.exit(1)
 
 
 def main():
@@ -178,6 +167,10 @@ def main():
         print("Server mode:")
         print("  python main.py --server")
         print("  API docs: http://localhost:8000/docs")
+        print()
+        print("Environment variables (.env):")
+        print("  MISTRAL_API_KEY - Required for AI organization")
+        print("  DATABASE_URL - Database connection (default: sqlite)")
     else:
         # CLI mode
         test_path = sys.argv[1] if len(sys.argv) > 1 else "."

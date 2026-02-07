@@ -58,6 +58,7 @@ class DuplicateRequest(BaseModel):
 class OrganizeRequest(BaseModel):
     """Request for organization suggestions."""
     base_path: Optional[str] = Field(default=None, description="Base path for organization")
+    temperature: float = Field(default=0.7, description="LLM temperature (0.0-1.0)")
 
 
 class TransformRequest(BaseModel):

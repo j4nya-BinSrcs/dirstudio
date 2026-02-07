@@ -20,7 +20,6 @@ from .models import (
 )
 from services.scan import Scanner
 from services.duplicate import DuplicateDetector
-from services.organize import Organizer
 from services.transform import Transformer
 import config
 import db.crud as crud
@@ -183,7 +182,7 @@ async def get_scan_overview(scan_id: str = PathParam(...), db: Session = Depends
         total_files=stats['total_files'],
         total_dirs=stats['total_dirs'],
         total_size=stats['total_size'],
-        depth=stats['depth'],  # Uses 'depth' from stats
+        depth=stats['depth'],
         file_types=stats['file_types'],
         top_extensions=[{'ext': ext, 'count': count} for ext, count in top_exts]
     )
@@ -207,13 +206,15 @@ async def get_scan_tree(scan_id: str = PathParam(...), db: Session = Depends(get
     return tree.to_dict()
 
 
-@router.post("/scans/{scan_id}/duplicates")
+@router.get("/scans/{scan_id}/duplicates")
 async def detect_duplicates(
-    request: DuplicateRequest,
     scan_id: str = PathParam(...),
+    detect_exact: bool = True,
+    detect_near: bool = True,
+    phash_threshold: int = None,
     db: Session = Depends(get_db)
 ):
-    """Detect duplicate files."""
+    """Detect duplicate files (GET - fetches analysis)."""
     scan = crud.get_scan(db, scan_id)
     if not scan:
         raise HTTPException(status_code=404, detail=f"Scan not found: {scan_id}")
@@ -235,50 +236,57 @@ async def detect_duplicates(
     
     results = {}
     
-    if request.detect_exact:
+    if detect_exact:
         exact = detector.detect_exact_duplicates()
         results['exact_duplicates'] = {k: v.to_dict() for k, v in exact.items()}
         
         # Save to database
         for group in exact.values():
-            crud.create_duplicate_group(
-                db,
-                scan_id=scan.id,
-                group_id=group.group_id,
-                duplicate_type=group.duplicate_type,
-                file_count=len(group.files),
-                total_size=group.total_size,
-                wastage=group.wastage
-            )
+            try:
+                crud.create_duplicate_group(
+                    db,
+                    scan_id=scan.id,
+                    group_id=group.group_id,
+                    duplicate_type=group.duplicate_type,
+                    file_count=len(group.files),
+                    total_size=group.total_size,
+                    wastage=group.wastage
+                )
+            except Exception:
+                pass  # Group might already exist
     
-    if request.detect_near:
-        near = detector.detect_near_duplicates(request.phash_threshold)
+    if detect_near:
+        near = detector.detect_near_duplicates(phash_threshold)
         results['near_duplicates'] = {k: v.to_dict() for k, v in near.items()}
         
         # Save to database
         for group in near.values():
-            crud.create_duplicate_group(
-                db,
-                scan_id=scan.id,
-                group_id=group.group_id,
-                duplicate_type=group.duplicate_type,
-                file_count=len(group.files),
-                total_size=group.total_size,
-                wastage=group.wastage
-            )
+            try:
+                crud.create_duplicate_group(
+                    db,
+                    scan_id=scan.id,
+                    group_id=group.group_id,
+                    duplicate_type=group.duplicate_type,
+                    file_count=len(group.files),
+                    total_size=group.total_size,
+                    wastage=group.wastage
+                )
+            except Exception:
+                pass  # Group might already exist
     
     results['statistics'] = detector.get_statistics()
     
     return results
 
 
-@router.post("/scans/{scan_id}/organize")
+@router.get("/scans/{scan_id}/organize")
 async def get_organization_suggestions(
-    request: OrganizeRequest,
     scan_id: str = PathParam(...),
+    base_path: str = None,
+    temperature: float = 0.7,
     db: Session = Depends(get_db)
 ):
-    """Get organization suggestions (computed on-demand, not stored)."""
+    """Get AI-powered organization suggestions (GET - fetches suggestions)."""
     scan = crud.get_scan(db, scan_id)
     if not scan:
         raise HTTPException(status_code=404, detail=f"Scan not found: {scan_id}")
@@ -291,14 +299,36 @@ async def get_organization_suggestions(
     if not tree:
         raise HTTPException(status_code=500, detail="Scan tree not available")
     
-    files = list(tree.traverse())
-    
-    # Generate suggestions (not saved to DB)
-    base_path = request.base_path or scan.path
-    organizer = Organizer(base_path)
-    organizer.create_default_rules()
-    
-    return organizer.generate_report(files)
+    try:
+        # Create AI organizer with Mistral
+        from organize import AIOrganizer
+        
+        base_path = base_path or scan.path
+        
+        organizer = AIOrganizer(
+            base_path=base_path,
+            temperature=temperature
+        )
+        
+        # Generate AI suggestions from tree
+        report = organizer.generate_report(tree)
+        
+        return report
+        
+    except ImportError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Required package not installed: {str(e)}. Install: pip install langchain-mistralai"
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating suggestions: {str(e)}"
+        )
 
 
 @router.post("/scans/{scan_id}/transform")
@@ -307,7 +337,7 @@ async def transform_files(
     scan_id: str = PathParam(...),
     db: Session = Depends(get_db)
 ):
-    """Perform file transformations (not tracked in DB)."""
+    """Perform file transformations."""
     scan = crud.get_scan(db, scan_id)
     if not scan:
         raise HTTPException(status_code=404, detail=f"Scan not found: {scan_id}")
