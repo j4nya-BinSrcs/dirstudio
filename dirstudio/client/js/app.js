@@ -12,6 +12,14 @@
      * Initialize application
      */
     function init() {
+        // Apply saved / system theme
+        Utils.setTheme(Utils.getPreferredTheme());
+
+        var themeBtn = document.getElementById('themeToggleBtn');
+        if (themeBtn) {
+            themeBtn.addEventListener('click', Utils.toggleTheme);
+        }
+
         console.log('DirStudio initialized');
         loadScans();
     }

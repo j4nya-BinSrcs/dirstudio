@@ -142,6 +142,27 @@ var Utils = (function() {
         return path.length > 0 && path.trim().length > 0;
     }
 
+    /**
+     * Theme management
+     */
+    function getPreferredTheme() {
+        var stored = localStorage.getItem('theme');
+        if (stored) return stored;
+        return window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light';
+    }
+
+    function setTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    }
+
+    function toggleTheme() {
+        var current = document.documentElement.getAttribute('data-theme');
+        setTheme(current === 'dark' ? 'light' : 'dark');
+    }
+
     // Public API
     return {
         formatBytes: formatBytes,
@@ -152,6 +173,9 @@ var Utils = (function() {
         debounce: debounce,
         showToast: showToast,
         generateUUID: generateUUID,
-        isValidPath: isValidPath
+        isValidPath: isValidPath,
+        setTheme: setTheme,
+        toggleTheme: toggleTheme,
+        getPreferredTheme: getPreferredTheme
     };
 })();
