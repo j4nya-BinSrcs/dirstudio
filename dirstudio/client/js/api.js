@@ -1,178 +1,288 @@
 /**
  * DirStudio API Client
- * Handles all communication with backend server
+ * All backend communication goes through /api/*
  */
 
-var API = (function() {
+var API = (function () {
     'use strict';
 
-    var BASE_URL = 'http://localhost:8000';
-    var currentScanId = null;
+    // ============================================================
+    // CONFIG
+    // ============================================================
+
+    const BASE_URL = 'http://localhost:8000';
+    const API_PREFIX = '/api';
+
+    let currentScanId = null;
+
+    // ============================================================
+    // INTERNAL HELPERS
+    // ============================================================
 
     /**
-     * Make HTTP request
-     * @param {string} endpoint - API endpoint
-     * @param {object} options - Fetch options
-     * @returns {Promise} Response data
+     * Build full API URL
      */
-    function request(endpoint, options) {
-        options = options || {};
-        options.headers = options.headers || {};
-        options.headers['Content-Type'] = 'application/json';
-
-        return fetch(BASE_URL + endpoint, options)
-            .then(function(response) {
-                if (!response.ok) {
-                    throw new Error('API request failed: ' + response.statusText);
-                }
-                return response.json();
-            })
-            .catch(function(error) {
-                console.error('API Error:', error);
-                throw error;
-            });
+    function apiUrl(path) {
+        if (!path.startsWith('/')) path = '/' + path;
+        return BASE_URL + API_PREFIX + path;
     }
 
     /**
-     * Create a new scan
-     * @param {string} path - Directory path
-     * @returns {Promise} Scan data
+     * Unified fetch wrapper
      */
-    function createScan(path) {
+    async function request(path, options = {}) {
+        const fetchOptions = {
+            credentials: 'same-origin',
+            ...options,
+            headers: {
+                ...(options.headers || {})
+            }
+        };
+
+        if (fetchOptions.body && typeof fetchOptions.body === 'string') {
+            fetchOptions.headers['Content-Type'] = 'application/json';
+        }
+
+        const response = await fetch(apiUrl(path), fetchOptions);
+
+        if (!response.ok) {
+            let errorText;
+            try {
+                errorText = await response.text();
+            } catch {
+                errorText = response.statusText;
+            }
+            throw new Error(errorText || `API error (${response.status})`);
+        }
+
+        // 204 No Content safety
+        if (response.status === 204) {
+            return null;
+        }
+
+        return response.json();
+    }
+
+    // ============================================================
+    // SCANS
+    // ============================================================
+
+    function createScan(path, options = {}) {
         return request('/scans', {
             method: 'POST',
-            body: JSON.stringify({ path: path })
+            body: JSON.stringify({
+                path: path,
+                max_depth: options.max_depth ?? null,
+                compute_sha256: options.compute_sha256 !== false,
+                compute_phash: options.compute_phash !== false,
+                num_workers: options.num_workers ?? null
+            })
         });
     }
 
-    /**
-     * Get all scans
-     * @returns {Promise} List of scans
-     */
-    function getAllScans() {
-        return request('/scans');
+    function getAllScans(skip = 0, limit = 100) {
+        return request(`/scans?skip=${skip}&limit=${limit}`);
     }
 
-    /**
-     * Get scan details
-     * @param {string} scanId - Scan ID
-     * @returns {Promise} Scan details
-     */
     function getScan(scanId) {
-        return request('/scans/' + scanId);
+        return request(`/scans/${scanId}`);
     }
 
-    /**
-     * Delete a scan
-     * @param {string} scanId - Scan ID
-     * @returns {Promise} Delete result
-     */
-    function deleteScan(scanId) {
-        return request('/scans/' + scanId, {
-            method: 'DELETE'
+    function getScanOverview(scanId) {
+        return request(`/scans/${scanId}/overview`);
+    }
+
+    function getTree(scanId) {
+        return request(`/scans/${scanId}/tree`).then(response => {
+            return response.root || response.tree || response.data || response;
         });
     }
 
-    /**
-     * Get scan analysis/overview
-     * @param {string} scanId - Scan ID
-     * @returns {Promise} Analysis data
-     */
-    function getAnalysis(scanId) {
-        return request('/scans/' + scanId + '/analysis');
+    function deleteScan(scanId) {
+        return request(`/scans/${scanId}`, { method: 'DELETE' });
     }
 
-    /**
-     * Get directory tree
-     * @param {string} scanId - Scan ID
-     * @returns {Promise} Tree data
-     */
-    function getTree(scanId) {
-        return request('/scans/' + scanId + '/tree');
+    // ============================================================
+    // DUPLICATES
+    // ============================================================
+
+    function getDuplicates(scanId, options = {}) {
+        const params = new URLSearchParams();
+
+        if (options.detect_exact !== undefined)
+            params.set('detect_exact', options.detect_exact);
+        if (options.detect_near !== undefined)
+            params.set('detect_near', options.detect_near);
+        if (options.phash_threshold !== undefined)
+            params.set('phash_threshold', options.phash_threshold);
+
+        const query = params.toString();
+        return request(`/scans/${scanId}/duplicates${query ? '?' + query : ''}`);
     }
 
-    /**
-     * Get duplicate files
-     * @param {string} scanId - Scan ID
-     * @returns {Promise} Duplicate groups
-     */
-    function getDuplicates(scanId) {
-        return request('/scans/' + scanId + '/duplicates');
+    // ============================================================
+    // ORGANIZE
+    // ============================================================
+
+    function getOrganizeSuggestions(scanId, options = {}) {
+        const params = new URLSearchParams();
+
+        if (options.base_path)
+            params.set('base_path', options.base_path);
+        if (options.temperature)
+            params.set('temperature', options.temperature);
+
+        const query = params.toString();
+        return request(`/scans/${scanId}/organize${query ? '?' + query : ''}`);
     }
 
-    /**
-     * Clean duplicate files
-     * @param {string} scanId - Scan ID
-     * @param {object} data - Cleanup data
-     * @returns {Promise} Cleanup result
-     */
-    function cleanDuplicates(scanId, data) {
-        return request('/scans/' + scanId + '/duplicates/clean', {
+    // ============================================================
+    // TRANSFORMS
+    // ============================================================
+
+    function transformFiles(scanId, data) {
+        return request(`/scans/${scanId}/transform`, {
             method: 'POST',
             body: JSON.stringify(data)
         });
     }
 
-    /**
-     * Connect to WebSocket for real-time updates
-     * @param {string} scanId - Scan ID
-     * @param {function} onMessage - Message handler
-     * @returns {WebSocket} WebSocket instance
-     */
+    function compressFiles(scanId, filePaths, targetPath, format = 'zip', dryRun = false) {
+        return transformFiles(scanId, {
+            operation: 'compress',
+            file_paths: filePaths,
+            target_path: targetPath,
+            params: { format },
+            dry_run: dryRun
+        });
+    }
+
+    function convertImages(scanId, filePaths, format, outputDir, dryRun = false) {
+        return transformFiles(scanId, {
+            operation: 'convert',
+            file_paths: filePaths,
+            target_path: outputDir,
+            params: { format },
+            dry_run: dryRun
+        });
+    }
+
+    function resizeImages(scanId, filePaths, maxWidth = 1920, maxHeight = 1080, outputDir, dryRun = false) {
+        return transformFiles(scanId, {
+            operation: 'resize',
+            file_paths: filePaths,
+            target_path: outputDir,
+            params: { max_width: maxWidth, max_height: maxHeight },
+            dry_run: dryRun
+        });
+    }
+
+    function moveFiles(scanId, filePaths, targetPath, dryRun = false) {
+        return transformFiles(scanId, {
+            operation: 'move',
+            file_paths: filePaths,
+            target_path: targetPath,
+            dry_run: dryRun
+        });
+    }
+
+    function copyFiles(scanId, filePaths, targetPath, dryRun = false) {
+        return transformFiles(scanId, {
+            operation: 'copy',
+            file_paths: filePaths,
+            target_path: targetPath,
+            dry_run: dryRun
+        });
+    }
+
+    function deleteFiles(scanId, filePaths, dryRun = false) {
+        return transformFiles(scanId, {
+            operation: 'delete',
+            file_paths: filePaths,
+            dry_run: dryRun
+        });
+    }
+
+    // ============================================================
+    // STATS
+    // ============================================================
+
+    function getGlobalStats() {
+        return request('/stats');
+    }
+
+    // ============================================================
+    // WEBSOCKET
+    // ============================================================
+
     function connectWebSocket(scanId, onMessage) {
-        var wsUrl = BASE_URL.replace('http', 'ws') + '/ws/scan/' + scanId;
-        var ws = new WebSocket(wsUrl);
+        const wsUrl =
+            BASE_URL.replace(/^http/, 'ws') +
+            API_PREFIX +
+            `/ws/scan/${scanId}`;
 
-        ws.onopen = function() {
-            console.log('WebSocket connected');
-        };
+        const ws = new WebSocket(wsUrl);
 
-        ws.onmessage = function(event) {
-            var data = JSON.parse(event.data);
-            if (onMessage) {
-                onMessage(data);
+        ws.onmessage = (event) => {
+            try {
+                onMessage?.(JSON.parse(event.data));
+            } catch (e) {
+                console.error('WebSocket parse error', e);
             }
-        };
-
-        ws.onerror = function(error) {
-            console.error('WebSocket error:', error);
-        };
-
-        ws.onclose = function() {
-            console.log('WebSocket closed');
         };
 
         return ws;
     }
 
-    /**
-     * Set current scan ID
-     * @param {string} scanId - Scan ID
-     */
+    // ============================================================
+    // STATE
+    // ============================================================
+
     function setCurrentScan(scanId) {
         currentScanId = scanId;
+        localStorage.setItem('currentScanId', scanId);
     }
 
-    /**
-     * Get current scan ID
-     * @returns {string} Current scan ID
-     */
     function getCurrentScan() {
+        if (!currentScanId) {
+            currentScanId = localStorage.getItem('currentScanId');
+        }
         return currentScanId;
     }
 
-    // Public API
+    function clearCurrentScan() {
+        currentScanId = null;
+        localStorage.removeItem('currentScanId');
+    }
+
+    // ============================================================
+    // PUBLIC API
+    // ============================================================
+
     return {
-        createScan: createScan,
-        getAllScans: getAllScans,
-        getScan: getScan,
-        deleteScan: deleteScan,
-        getAnalysis: getAnalysis,
-        getTree: getTree,
-        getDuplicates: getDuplicates,
-        cleanDuplicates: cleanDuplicates,
-        connectWebSocket: connectWebSocket,
-        setCurrentScan: setCurrentScan,
-        getCurrentScan: getCurrentScan
+        createScan,
+        getAllScans,
+        getScan,
+        getScanOverview,
+        getTree,
+        deleteScan,
+
+        getDuplicates,
+        getOrganizeSuggestions,
+
+        transformFiles,
+        compressFiles,
+        convertImages,
+        resizeImages,
+        moveFiles,
+        copyFiles,
+        deleteFiles,
+
+        getGlobalStats,
+        connectWebSocket,
+
+        setCurrentScan,
+        getCurrentScan,
+        clearCurrentScan
     };
 })();

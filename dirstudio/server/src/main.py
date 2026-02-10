@@ -1,7 +1,3 @@
-"""
-DirStudio main entry point.
-Supports both CLI mode and API server mode.
-"""
 import sys
 import json
 from pathlib import Path
@@ -77,7 +73,6 @@ def cli_mode(test_path: str):
         print("=" * 60)
         print("STEP 3: AI Organization suggestions...")
         print("-" * 60)
-        print("(Requires MISTRAL_API_KEY in .env)")
         print("Use API endpoint: POST /api/scans/{id}/organize")
         print()
         
@@ -130,7 +125,6 @@ def server_mode():
     print("Make sure to set MISTRAL_API_KEY in .env for AI features")
     print()
     
-    # Import here to avoid issues
     # try:
     from api.api import app
     

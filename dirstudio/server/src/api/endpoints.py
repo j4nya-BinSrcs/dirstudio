@@ -301,7 +301,7 @@ async def get_organization_suggestions(
     
     try:
         # Create AI organizer with Mistral
-        from organize import AIOrganizer
+        from services.organize import AIOrganizer
         
         base_path = base_path or scan.path
         

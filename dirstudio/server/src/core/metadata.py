@@ -1,6 +1,5 @@
 """
 File and directory metadata extraction.
-Preserved design from original with minor performance improvements.
 """
 from datetime import datetime
 from enum import Enum

@@ -59,3 +59,5 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Sample Directory
+/samples
