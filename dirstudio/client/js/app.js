@@ -360,35 +360,87 @@
      */
     function loadTree(scanId) {
         API.getTree(scanId)
-            .then(function(tree) {
-                renderTree(tree);
+            .then(function (response) {
+                console.log('RAW TREE RESPONSE:', response);
+
+                // ✅ Accept both wrapped and direct responses
+                const rootNode = response.root ? response.root : response;
+
+                if (!rootNode || !rootNode.path) {
+                    throw new Error('Invalid tree response');
+                }
+
+                const treeRoot = normalizeFsNode(rootNode);
+                console.log('NORMALIZED TREE ROOT:', treeRoot);
+
+                renderTree(treeRoot);
             })
-            .catch(function(error) {
-                console.error('Failed to load tree:', error);
-                Utils.showToast('Failed to load tree: ' + error.message, 'error');
+            .catch(function (error) {
+                console.error('Error loading tree:', error);
+
+                const el = document.getElementById('directoryTree');
+                if (el) {
+                    el.innerHTML =
+                        '<div class="alert alert-danger">Failed to load directory tree</div>';
+                }
             });
     }
+
+    function normalizeFsNode(node) {
+        if (!node || !node.path) return null;
+
+        const name = node.path.split(/[\\/]/).pop();
+
+        // Directory
+        if (node.subdirs || node.files) {
+            const children = [];
+
+            if (Array.isArray(node.subdirs)) {
+                node.subdirs.forEach(subdir => {
+                    const child = normalizeFsNode(subdir);
+                    if (child) children.push(child);
+                });
+            }
+
+            if (Array.isArray(node.files)) {
+                node.files.forEach(file => {
+                    children.push({
+                        type: 'file',
+                        name: file.path.split(/[\\/]/).pop(),
+                        path: file.path,
+                        size: file.metadata?.size || 0,
+                        metadata: file.metadata,
+                        hashes: file.hashes || {}
+                    });
+                });
+            }
+
+            return {
+                type: 'directory',
+                name,
+                path: node.path,
+                size: node.metadata?.size || 0,
+                children
+            };
+        }
+
+        return null;
+    }
+
 
     /**
      * Render directory tree with VSCode-like styling and file selection
      * @param {object} tree - Tree data
      */
     function renderTree(tree) {
-        var container = document.getElementById('directoryTree');
-        if (!container) return;
-
-        if (!tree) {
-            container.innerHTML = '<div class="empty-state"><p>No tree data</p></div>';
+        const container = document.getElementById('directoryTree');
+        if (!container) {
+            console.error('directoryTree container not found');
             return;
         }
 
-        selectedFiles = []; // Reset selection
-        updateSelectedCount();
-        
         container.innerHTML = buildTreeHTML(tree, 0, true);
-        
-        // Add click handlers
-        attachTreeHandlers();
+        attachTreeHandlers(container);
     }
 
     /**
@@ -398,59 +450,90 @@
      * @param {boolean} isRoot - Is root node
      * @returns {string} HTML string
      */
-    function buildTreeHTML(node, depth, isRoot) {
-    if (!node) return '';
+    function buildTreeHTML(node, depth = 0, isRoot = false) {
+        if (!node) return '';
 
-    var isDir =
-        node.type === 'directory' ||
-        node.type === 'dir' ||
-        Array.isArray(node.children);
+        const nodeId = Math.random().toString(36).slice(2);
+        const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+        const isExpanded = isRoot === true;
 
-    var hasChildren = Array.isArray(node.children) && node.children.length > 0;
-    var nodeId = 'node-' + Math.random().toString(36).substr(2, 9);
-    var filePath = node.path || '';
+        let html = '<div class="tree-node" data-node-id="' + nodeId + '">';
 
-    var html = '<div class="tree-node" data-node-id="' + nodeId + '" data-file-path="' + filePath + '">';
-    html += '<div class="tree-node-content">';
+        html += '<div class="tree-node-content" style="padding-left:' + (depth * 16) + 'px">';
 
-    // Checkbox only for files
-    if (!isDir && filePath) {
-        html += '<input type="checkbox" class="tree-checkbox" data-file-path="' + filePath + '" onchange="handleFileSelection(this)">';
-    } else {
-        html += '<span class="tree-spacer-check"></span>';
-    }
+        // Toggle icon
+        if (hasChildren) {
+            html +=
+                '<i class="fas ' +
+                (isExpanded ? 'fa-chevron-down expanded' : 'fa-chevron-right') +
+                ' tree-toggle" data-node-id="' + nodeId + '"></i>';
+        } else {
+            html += '<span class="tree-spacer"></span>';
+        }
 
-    if (hasChildren) {
-        html += '<i class="fas fa-chevron-right tree-toggle" data-node-id="' + nodeId + '"></i>';
-    } else {
-        html += '<span class="tree-spacer"></span>';
-    }
+        // File / folder icon
+        if (node.type === 'file') {
+            html += `
+                <input
+                    type="checkbox"
+                    class="tree-checkbox me-2"
+                    data-file-path="${node.path}"
+                    onchange="handleFileSelection(this)"
+                >
+                <i class="fas fa-file tree-icon file-icon"></i>
+            `;
+        } else {
+            html += '<i class="fas fa-folder tree-icon folder-icon"></i>';
+        }
 
-    if (isDir) {
-        html += '<i class="fas fa-folder"></i>';
-    } else {
-        html += '<i class="fas ' + Utils.getFileIcon(Utils.getExtension(node.name)) + '"></i>';
-    }
-
-    html += '<strong>' + (node.name || 'Unknown') + '</strong>';
-
-    if (!isDir) {
-        html += '<span class="text-muted">(' + Utils.formatBytes(node.size || 0) + ')</span>';
-    }
-
-    html += '</div>';
-
-    if (hasChildren) {
-        html += '<div class="tree-children" style="display:none" data-parent="' + nodeId + '">';
-        node.children.forEach(function(child) {
-            html += buildTreeHTML(child, depth + 1, false);
-        });
+        html += '<span class="tree-label">' + node.name + '</span>';
         html += '</div>';
+
+        // Children
+        if (hasChildren) {
+            html +=
+                '<div class="tree-children" data-parent="' + nodeId + '"' +
+                (isExpanded ? '' : ' style="display:none"') +
+                '>';
+
+            node.children.forEach(child => {
+                html += buildTreeHTML(child, depth + 1, false);
+            });
+
+            html += '</div>';
+        }
+
+        html += '</div>';
+        return html;
     }
 
-    html += '</div>';
-    return html;
-}
+    function attachTreeHandlers(container) {
+        container.querySelectorAll('.tree-toggle').forEach(toggle => {
+            toggle.addEventListener('click', function (e) {
+                e.stopPropagation();
+
+                const nodeId = this.dataset.nodeId;
+                const children = container.querySelector(
+                    '.tree-children[data-parent="' + nodeId + '"]'
+                );
+
+                if (!children) return;
+
+                const expanded = this.classList.contains('expanded');
+
+                if (expanded) {
+                    children.style.display = 'none';
+                    this.classList.remove('expanded');
+                    this.classList.replace('fa-chevron-down', 'fa-chevron-right');
+                } else {
+                    children.style.display = 'block';
+                    this.classList.add('expanded');
+                    this.classList.replace('fa-chevron-right', 'fa-chevron-down');
+                }
+            });
+        });
+    }
+
 
     /**
      * Handle file selection from tree
