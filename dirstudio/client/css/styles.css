@@ -898,3 +898,111 @@ body {
 html[data-theme="dark"] .btn-close {
     filter: invert(1);
 }
+
+/* ============================================================================
+   Enhanced Features Styles
+   ============================================================================ */
+
+/* Drag and Drop */
+.upload-zone {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.upload-zone.drag-over {
+    border-color: var(--primary-color) !important;
+    background: rgba(99, 102, 241, 0.1) !important;
+    transform: scale(1.02);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+}
+
+/* Modal Trees */
+.modal-tree-container {
+    height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    font-size: 12px;
+}
+
+.modal-tree-container .tree-node-content {
+    padding-left: 4px !important;
+}
+
+.modal-tree-container .tree-label {
+    font-size: 12px;
+}
+
+.modal-lg {
+    max-width: 900px !important;
+}
+
+/* Snapshot Cards */
+.snapshot-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+}
+
+.snapshot-card:hover {
+    box-shadow: var(--shadow);
+    border-color: var(--primary-color);
+}
+
+.snapshot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.snapshot-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.snapshot-meta {
+    margin-bottom: 8px;
+}
+
+.snapshot-desc {
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+/* Chart Container - Fixed for Canvas */
+#fileTypeChart {
+    max-height: 300px !important;
+    width: 100% !important;
+}
+
+.chart-container {
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Tree improvements */
+.tree-label {
+    font-weight: 500;
+}
+
+.tree-icon {
+    margin-right: 6px;
+}
+
+.file-icon {
+    color: var(--text-secondary);
+}
+
+.folder-icon {
+    color: #f59e0b;
+}

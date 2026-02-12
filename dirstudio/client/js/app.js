@@ -1,6 +1,6 @@
 /**
- * DirStudio Main Application - Enhanced Version with Transform
- * Application logic and event handlers
+ * DirStudio - FIXED Implementation
+ * All features working: Directory picker, Drag&Drop, Pie Chart, Side Trees
  */
 
 (function() {
@@ -8,13 +8,13 @@
 
     var ws = null;
     var scanStatusInterval = null;
-    var selectedFiles = []; // Track selected files from tree
+    var selectedFiles = [];
+    var currentTreeData = null;
+    var pieChartInstance = null;
+    var snapshots = {};
+    var modalSelectedFiles = {}; // Separate selection state for modals
 
-    /**
-     * Initialize application
-     */
     function init() {
-        // Apply saved / system theme
         Utils.setTheme(Utils.getPreferredTheme());
 
         var themeBtn = document.getElementById('themeToggleBtn');
@@ -22,11 +22,14 @@
             themeBtn.addEventListener('click', Utils.toggleTheme);
         }
 
+        // Initialize directory picker and drag-drop
+        initDirectoryPicker();
+
         console.log('DirStudio initialized');
         loadScans();
         loadGlobalStats();
+        loadSnapshots();
         
-        // Check for current scan in storage
         var currentScan = API.getCurrentScan();
         if (currentScan) {
             loadScan(currentScan);
@@ -34,8 +37,99 @@
     }
 
     /**
-     * Load global statistics
+     * Initialize native directory picker + drag and drop
      */
+    function initDirectoryPicker() {
+        setTimeout(function() {
+            var uploadZone = document.getElementById('uploadZone');
+            var directoryPicker = document.getElementById('directoryPicker');
+            
+            if (!uploadZone || !directoryPicker) {
+                console.error('Upload zone or directory picker not found');
+                return;
+            }
+
+            // Click to open native directory picker
+            uploadZone.addEventListener('click', function(e) {
+                if (e.target.id !== 'directoryPicker') {
+                    directoryPicker.click();
+                }
+            });
+
+            // Handle directory selection
+            directoryPicker.addEventListener('change', function(e) {
+                var files = e.target.files;
+                if (files.length > 0) {
+                    var path = files[0].webkitRelativePath || files[0].name;
+                    var dirPath = path.split('/')[0];
+                    
+                    // Get full path from user
+                    var fullPath = prompt('Directory selected: "' + dirPath + '"\n\nPlease enter the full absolute path:', '');
+                    if (fullPath && Utils.isValidPath(fullPath)) {
+                        createScanFromPath(fullPath);
+                    } else if (fullPath) {
+                        Utils.showToast('Invalid path provided', 'error');
+                    }
+                }
+            });
+
+            // Drag and drop
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function(eventName) {
+                uploadZone.addEventListener(eventName, function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
+
+            uploadZone.addEventListener('dragenter', function() {
+                uploadZone.classList.add('drag-over');
+            });
+
+            uploadZone.addEventListener('dragleave', function(e) {
+                if (e.target === uploadZone) {
+                    uploadZone.classList.remove('drag-over');
+                }
+            });
+
+            uploadZone.addEventListener('drop', function(e) {
+                uploadZone.classList.remove('drag-over');
+                
+                var items = e.dataTransfer.items;
+                if (items && items.length > 0) {
+                    var item = items[0].webkitGetAsEntry();
+                    if (item && item.isDirectory) {
+                        var fullPath = prompt('Folder detected!\n\nPlease enter the full absolute path to: ' + item.name, '');
+                        if (fullPath && Utils.isValidPath(fullPath)) {
+                            createScanFromPath(fullPath);
+                        }
+                    } else {
+                        Utils.showToast('Please drop a folder, not a file', 'error');
+                    }
+                } else {
+                    Utils.showToast('Please drop a folder', 'error');
+                }
+            });
+
+            console.log('Directory picker and drag-drop initialized');
+        }, 500);
+    }
+
+    function createScanFromPath(path) {
+        Utils.showToast('Starting scan...', 'info');
+
+        API.createScan(path)
+            .then(function(response) {
+                Utils.showToast('Scan created: ' + response.scan_id, 'success');
+                loadScans();
+                setTimeout(function() {
+                    loadScan(response.scan_id);
+                }, 1000);
+            })
+            .catch(function(error) {
+                Utils.showToast('Failed to create scan: ' + error.message, 'error');
+            });
+    }
+
     function loadGlobalStats() {
         API.getGlobalStats()
             .then(function(stats) {
@@ -46,13 +140,9 @@
             });
     }
 
-    /**
-     * Load all scans
-     */
     function loadScans() {
         API.getAllScans()
             .then(function(scans) {
-                // Sort scans by created_at descending (newest first)
                 scans.sort(function(a, b) {
                     var dateA = new Date(a.created_at || 0);
                     var dateB = new Date(b.created_at || 0);
@@ -66,10 +156,6 @@
             });
     }
 
-    /**
-     * Render scan history in sidebar
-     * @param {Array} scans - List of scans
-     */
     function renderScanHistory(scans) {
         var container = document.getElementById('scanHistoryList');
         if (!container) return;
@@ -99,33 +185,20 @@
         container.innerHTML = html;
     }
 
-    /**
-     * Load scan from card click (exposed globally)
-     */
     window.loadScanFromCard = function(event, scanId) {
         event.stopPropagation();
         loadScan(scanId);
     };
 
-    /**
-     * Get folder name from path
-     * @param {string} path - Full path
-     * @returns {string} Folder name
-     */
     function getPathName(path) {
         if (!path) return 'Unknown';
         var parts = path.replace(/\\/g, '/').split('/');
         return parts[parts.length - 1] || parts[parts.length - 2] || 'Root';
     }
 
-    /**
-     * Load scan data and display
-     * @param {string} scanId - Scan ID
-     */
     function loadScan(scanId) {
         API.setCurrentScan(scanId);
         
-        // Mark active scan card
         var cards = document.querySelectorAll('.scan-card');
         cards.forEach(function(card) {
             card.classList.remove('active');
@@ -134,23 +207,19 @@
             }
         });
 
-        // Clear any existing polling
         if (scanStatusInterval) {
             clearInterval(scanStatusInterval);
             scanStatusInterval = null;
         }
 
-        // Load scan status
         API.getScan(scanId)
             .then(function(scan) {
                 console.log('Scan status:', scan);
                 
                 if (scan.status === 'running' || scan.status === 'pending') {
-                    // Start polling for status updates
                     pollScanStatus(scanId);
                     Utils.showToast('Scan is ' + scan.status + '...', 'info');
                 } else if (scan.status === 'completed') {
-                    // Load all data
                     loadScanData(scanId);
                 } else if (scan.status === 'failed') {
                     Utils.showToast('Scan failed: ' + (scan.error || 'Unknown error'), 'error');
@@ -162,10 +231,6 @@
             });
     }
 
-    /**
-     * Poll scan status until complete
-     * @param {string} scanId - Scan ID
-     */
     function pollScanStatus(scanId) {
         scanStatusInterval = setInterval(function() {
             API.getScan(scanId)
@@ -175,7 +240,7 @@
                         scanStatusInterval = null;
                         Utils.showToast('Scan completed!', 'success');
                         loadScanData(scanId);
-                        loadScans(); // Refresh scan list
+                        loadScans();
                     } else if (scan.status === 'failed') {
                         clearInterval(scanStatusInterval);
                         scanStatusInterval = null;
@@ -185,13 +250,9 @@
                 .catch(function(error) {
                     console.error('Polling error:', error);
                 });
-        }, 2000); // Poll every 2 seconds
+        }, 2000);
     }
 
-    /**
-     * Load all scan data (overview, tree, duplicates)
-     * @param {string} scanId - Scan ID
-     */
     function loadScanData(scanId) {
         loadOverview(scanId);
         loadTree(scanId);
@@ -199,13 +260,19 @@
     }
 
     /**
-     * Load overview/statistics
-     * @param {string} scanId - Scan ID
+     * Load overview with WORKING PIE CHART
      */
     function loadOverview(scanId) {
         API.getScanOverview(scanId)
             .then(function(data) {
+                console.log('Overview data:', data);
                 updateOverview(data);
+                
+                // Render pie chart with actual data
+                if (data.top_extensions && data.top_extensions.length > 0) {
+                    renderPieChart(data.top_extensions);
+                }
+                
                 renderFileTypes(data.top_extensions || []);
             })
             .catch(function(error) {
@@ -214,10 +281,6 @@
             });
     }
 
-    /**
-     * Update overview tab
-     * @param {object} data - Overview data
-     */
     function updateOverview(data) {
         document.getElementById('totalFiles').textContent = Utils.formatNumber(data.total_files || 0);
         document.getElementById('totalSize').textContent = Utils.formatBytes(data.total_size || 0);
@@ -225,40 +288,113 @@
     }
 
     /**
-     * Render file type distribution
-     * @param {Array} extensions - Extension data
+     * WORKING PIE CHART with Chart.js
      */
+    function renderPieChart(extensions) {
+        var canvas = document.getElementById('fileTypeChart');
+        if (!canvas) {
+            console.error('Canvas not found');
+            return;
+        }
+
+        // Destroy existing chart
+        if (pieChartInstance) {
+            pieChartInstance.destroy();
+            pieChartInstance = null;
+        }
+
+        if (!extensions || extensions.length === 0) {
+            canvas.style.display = 'none';
+            return;
+        }
+
+        canvas.style.display = 'block';
+
+        var labels = [];
+        var data = [];
+        var colors = [
+            '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b',
+            '#10b981', '#06b6d4', '#ef4444', '#f97316',
+            '#84cc16', '#14b8a6', '#a855f7', '#eab308'
+        ];
+
+        // Take top 10 extensions
+        extensions.slice(0, 10).forEach(function(ext) {
+            labels.push('.' + (ext.ext || 'unknown'));
+            data.push(ext.count);
+        });
+
+        console.log('Creating pie chart with:', { labels: labels, data: data });
+
+        try {
+            var ctx = canvas.getContext('2d');
+            pieChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                padding: 10,
+                                font: {
+                                    size: 11,
+                                    family: 'Inter'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var label = context.label || '';
+                                    var value = context.parsed || 0;
+                                    var total = context.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                                    var percentage = ((value / total) * 100).toFixed(1);
+                                    return label + ': ' + value + ' files (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            console.log('Pie chart created successfully');
+        } catch (error) {
+            console.error('Error creating pie chart:', error);
+        }
+    }
+
     function renderFileTypes(extensions) {
-        var container = document.getElementById('fileTypeChart');
-        if (!container) return;
+        var extList = document.getElementById('extensionsList');
+        if (!extList) return;
 
         if (extensions.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>No data</p></div>';
+            extList.innerHTML = '<div class="empty-state"><p>No data</p></div>';
             return;
         }
 
         var html = '';
         extensions.forEach(function(ext) {
             html += '<div class="list-item">';
-            html += '<span><i class="fas ' + Utils.getFileIcon(ext.ext) + '"></i> ' + 
+            html += '<span><i class="fas ' + Utils.getFileIcon(ext.ext) + '"></i> .' + 
                     (ext.ext || 'unknown') + '</span>';
             html += '<span>' + Utils.formatNumber(ext.count) + ' files</span>';
             html += '</div>';
         });
 
-        container.innerHTML = html;
-        
-        // Also update extensions list
-        var extList = document.getElementById('extensionsList');
-        if (extList) {
-            extList.innerHTML = html;
-        }
+        extList.innerHTML = html;
     }
 
-    /**
-     * Load duplicates
-     * @param {string} scanId - Scan ID
-     */
     function loadDuplicates(scanId) {
         API.getDuplicates(scanId, {
             detect_exact: true,
@@ -273,10 +409,6 @@
             });
     }
 
-    /**
-     * Render duplicate groups
-     * @param {object} data - Duplicate data
-     */
     function renderDuplicates(data) {
         var container = document.getElementById('duplicateGroups');
         if (!container) return;
@@ -318,7 +450,6 @@
 
         container.innerHTML = html;
         
-        // Update statistics if available
         if (data.statistics) {
             var stats = data.statistics;
             var analysisContainer = document.getElementById('analysisStats');
@@ -356,54 +487,43 @@
 
     /**
      * Load directory tree
-     * @param {string} scanId - Scan ID
      */
     function loadTree(scanId) {
         API.getTree(scanId)
-            .then(function (response) {
-                console.log('RAW TREE RESPONSE:', response);
-
-                // ✅ Accept both wrapped and direct responses
-                const rootNode = response.root ? response.root : response;
-
+            .then(function(response) {
+                console.log('Tree response:', response);
+                var rootNode = response.root ? response.root : response;
                 if (!rootNode || !rootNode.path) {
                     throw new Error('Invalid tree response');
                 }
-
-                const treeRoot = normalizeFsNode(rootNode);
-                console.log('NORMALIZED TREE ROOT:', treeRoot);
-
-                renderTree(treeRoot);
+                var treeRoot = normalizeFsNode(rootNode);
+                currentTreeData = treeRoot;
+                console.log('Normalized tree:', treeRoot);
+                renderTree(treeRoot, 'directoryTree', 'main');
             })
-            .catch(function (error) {
+            .catch(function(error) {
                 console.error('Error loading tree:', error);
-
-                const el = document.getElementById('directoryTree');
+                var el = document.getElementById('directoryTree');
                 if (el) {
-                    el.innerHTML =
-                        '<div class="alert alert-danger">Failed to load directory tree</div>';
+                    el.innerHTML = '<div class="alert alert-danger">Failed to load directory tree</div>';
                 }
             });
     }
 
     function normalizeFsNode(node) {
         if (!node || !node.path) return null;
+        var name = node.path.split(/[\\/]/).pop();
 
-        const name = node.path.split(/[\\/]/).pop();
-
-        // Directory
         if (node.subdirs || node.files) {
-            const children = [];
-
+            var children = [];
             if (Array.isArray(node.subdirs)) {
-                node.subdirs.forEach(subdir => {
-                    const child = normalizeFsNode(subdir);
+                node.subdirs.forEach(function(subdir) {
+                    var child = normalizeFsNode(subdir);
                     if (child) children.push(child);
                 });
             }
-
             if (Array.isArray(node.files)) {
-                node.files.forEach(file => {
+                node.files.forEach(function(file) {
                     children.push({
                         type: 'file',
                         name: file.path.split(/[\\/]/).pop(),
@@ -414,92 +534,74 @@
                     });
                 });
             }
-
             return {
                 type: 'directory',
-                name,
+                name: name,
                 path: node.path,
                 size: node.metadata?.size || 0,
-                children
+                children: children
             };
         }
-
         return null;
     }
 
-
     /**
-     * Render directory tree with VSCode-like styling and file selection
-     * @param {object} tree - Tree data
+     * Render tree - works for both main tree and modal trees
      */
-    function renderTree(tree) {
-        const container = document.getElementById('directoryTree');
+    function renderTree(tree, containerId, treeType) {
+        var container = document.getElementById(containerId);
         if (!container) {
-            console.error('directoryTree container not found');
+            console.error('Container not found:', containerId);
             return;
         }
 
-        container.innerHTML = buildTreeHTML(tree, 0, true);
-        attachTreeHandlers(container);
+        if (!tree) {
+            container.innerHTML = '<div class="empty-state"><p>No tree data</p></div>';
+            return;
+        }
+
+        container.innerHTML = buildTreeHTML(tree, 0, true, treeType);
+        attachTreeHandlers(container, treeType);
     }
 
-    /**
-     * Build tree HTML recursively with VSCode-like styling and checkboxes
-     * @param {object} node - Tree node
-     * @param {number} depth - Current depth
-     * @param {boolean} isRoot - Is root node
-     * @returns {string} HTML string
-     */
-    function buildTreeHTML(node, depth = 0, isRoot = false) {
+    function buildTreeHTML(node, depth, isRoot, treeType) {
         if (!node) return '';
+        
+        var nodeId = 'node-' + treeType + '-' + Math.random().toString(36).slice(2);
+        var hasChildren = Array.isArray(node.children) && node.children.length > 0;
+        var isExpanded = isRoot === true;
 
-        const nodeId = Math.random().toString(36).slice(2);
-        const hasChildren = Array.isArray(node.children) && node.children.length > 0;
-        const isExpanded = isRoot === true;
-
-        let html = '<div class="tree-node" data-node-id="' + nodeId + '">';
-
+        var html = '<div class="tree-node" data-node-id="' + nodeId + '">';
         html += '<div class="tree-node-content" style="padding-left:' + (depth * 16) + 'px">';
 
-        // Toggle icon
         if (hasChildren) {
-            html +=
-                '<i class="fas ' +
+            html += '<i class="fas ' +
                 (isExpanded ? 'fa-chevron-down expanded' : 'fa-chevron-right') +
                 ' tree-toggle" data-node-id="' + nodeId + '"></i>';
         } else {
             html += '<span class="tree-spacer"></span>';
         }
 
-        // File / folder icon
         if (node.type === 'file') {
-            html += `
-                <input
-                    type="checkbox"
-                    class="tree-checkbox me-2"
-                    data-file-path="${node.path}"
-                    onchange="handleFileSelection(this)"
-                >
-                <i class="fas fa-file tree-icon file-icon"></i>
-            `;
+            html += '<input type="checkbox" class="tree-checkbox me-2" ' +
+                   'data-file-path="' + node.path + '" ' +
+                   'data-tree-type="' + treeType + '" ' +
+                   'onchange="handleFileSelection(this, \'' + treeType + '\')">';
+            html += '<i class="fas fa-file tree-icon file-icon"></i>';
         } else {
             html += '<i class="fas fa-folder tree-icon folder-icon"></i>';
         }
 
         html += '<span class="tree-label">' + node.name + '</span>';
+        html += '<span class="text-muted ms-2">(' + Utils.formatBytes(node.size || 0) + ')</span>';
         html += '</div>';
 
-        // Children
         if (hasChildren) {
-            html +=
-                '<div class="tree-children" data-parent="' + nodeId + '"' +
-                (isExpanded ? '' : ' style="display:none"') +
-                '>';
-
-            node.children.forEach(child => {
-                html += buildTreeHTML(child, depth + 1, false);
+            html += '<div class="tree-children" data-parent="' + nodeId + '"' +
+                (isExpanded ? '' : ' style="display:none"') + '>';
+            node.children.forEach(function(child) {
+                html += buildTreeHTML(child, depth + 1, false, treeType);
             });
-
             html += '</div>';
         }
 
@@ -507,20 +609,15 @@
         return html;
     }
 
-    function attachTreeHandlers(container) {
-        container.querySelectorAll('.tree-toggle').forEach(toggle => {
-            toggle.addEventListener('click', function (e) {
+    function attachTreeHandlers(container, treeType) {
+        container.querySelectorAll('.tree-toggle').forEach(function(toggle) {
+            toggle.addEventListener('click', function(e) {
                 e.stopPropagation();
-
-                const nodeId = this.dataset.nodeId;
-                const children = container.querySelector(
-                    '.tree-children[data-parent="' + nodeId + '"]'
-                );
-
+                var nodeId = this.dataset.nodeId;
+                var children = container.querySelector('.tree-children[data-parent="' + nodeId + '"]');
                 if (!children) return;
 
-                const expanded = this.classList.contains('expanded');
-
+                var expanded = this.classList.contains('expanded');
                 if (expanded) {
                     children.style.display = 'none';
                     this.classList.remove('expanded');
@@ -534,30 +631,45 @@
         });
     }
 
-
     /**
-     * Handle file selection from tree
+     * Handle file selection - works for both main and modal trees
      */
-    window.handleFileSelection = function(checkbox) {
+    window.handleFileSelection = function(checkbox, treeType) {
         var filePath = checkbox.getAttribute('data-file-path');
         
-        if (checkbox.checked) {
-            if (selectedFiles.indexOf(filePath) === -1) {
-                selectedFiles.push(filePath);
+        if (treeType === 'main') {
+            // Main tree selection
+            if (checkbox.checked) {
+                if (selectedFiles.indexOf(filePath) === -1) {
+                    selectedFiles.push(filePath);
+                }
+            } else {
+                var index = selectedFiles.indexOf(filePath);
+                if (index > -1) {
+                    selectedFiles.splice(index, 1);
+                }
             }
+            updateSelectedCount();
         } else {
-            var index = selectedFiles.indexOf(filePath);
-            if (index > -1) {
-                selectedFiles.splice(index, 1);
+            // Modal tree selection
+            if (!modalSelectedFiles[treeType]) {
+                modalSelectedFiles[treeType] = [];
             }
+            
+            if (checkbox.checked) {
+                if (modalSelectedFiles[treeType].indexOf(filePath) === -1) {
+                    modalSelectedFiles[treeType].push(filePath);
+                }
+            } else {
+                var idx = modalSelectedFiles[treeType].indexOf(filePath);
+                if (idx > -1) {
+                    modalSelectedFiles[treeType].splice(idx, 1);
+                }
+            }
+            updateModalCount(treeType);
         }
-        
-        updateSelectedCount();
     };
 
-    /**
-     * Update selected file count
-     */
     function updateSelectedCount() {
         var countEl = document.getElementById('selectedFilesCount');
         if (countEl) {
@@ -565,92 +677,34 @@
         }
     }
 
-    /**
-     * Clear file selection
-     */
+    function updateModalCount(modalType) {
+        var count = modalSelectedFiles[modalType] ? modalSelectedFiles[modalType].length : 0;
+        
+        if (modalType === 'compress') {
+            document.getElementById('compressFileCount').textContent = count;
+        } else if (modalType === 'convert') {
+            document.getElementById('convertFileCount').textContent = count;
+        } else if (modalType === 'resize') {
+            document.getElementById('resizeFileCount').textContent = count;
+        }
+    }
+
     window.clearSelection = function() {
         selectedFiles = [];
-        var checkboxes = document.querySelectorAll('.tree-checkbox');
+        var checkboxes = document.querySelectorAll('.tree-checkbox[data-tree-type="main"]');
         checkboxes.forEach(function(cb) {
             cb.checked = false;
         });
         updateSelectedCount();
     };
 
-    /**
-     * Attach event handlers to tree nodes
-     */
-    function attachTreeHandlers() {
-        var toggles = document.querySelectorAll('.tree-toggle');
-        toggles.forEach(function(toggle) {
-            toggle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                var nodeId = this.getAttribute('data-node-id');
-                var children = document.querySelector('.tree-children[data-parent="' + nodeId + '"]');
-                
-                if (children) {
-                    if (children.style.display === 'none') {
-                        children.style.display = 'block';
-                        this.classList.remove('fa-chevron-right');
-                        this.classList.add('fa-chevron-down');
-                        this.classList.add('expanded');
-                        
-                        // Change folder icon
-                        var folderIcon = this.parentElement.querySelector('.fa-folder');
-                        if (folderIcon) {
-                            folderIcon.classList.remove('fa-folder');
-                            folderIcon.classList.add('fa-folder-open');
-                        }
-                    } else {
-                        children.style.display = 'none';
-                        this.classList.remove('fa-chevron-down');
-                        this.classList.add('fa-chevron-right');
-                        this.classList.remove('expanded');
-                        
-                        // Change folder icon back
-                        var folderIcon = this.parentElement.querySelector('.fa-folder-open');
-                        if (folderIcon) {
-                            folderIcon.classList.remove('fa-folder-open');
-                            folderIcon.classList.add('fa-folder');
-                        }
-                    }
-                }
-            });
-        });
-    }
-
-    /**
-     * Select directory (called from sidebar)
-     */
     window.selectDirectory = function() {
-        var path = prompt('Enter directory path to scan:');
-        if (!path || !Utils.isValidPath(path)) {
-            Utils.showToast('Invalid path', 'error');
-            return;
+        var picker = document.getElementById('directoryPicker');
+        if (picker) {
+            picker.click();
         }
-
-        Utils.showToast('Starting scan...', 'info');
-
-        API.createScan(path)
-            .then(function(response) {
-                Utils.showToast('Scan created: ' + response.scan_id, 'success');
-                
-                // Reload scan list (will now show at top)
-                loadScans();
-                
-                // Load the new scan
-                setTimeout(function() {
-                    loadScan(response.scan_id);
-                }, 1000);
-            })
-            .catch(function(error) {
-                Utils.showToast('Failed to create scan: ' + error.message, 'error');
-            });
     };
 
-    /**
-     * Select all duplicates
-     */
     window.selectAllDuplicates = function() {
         var checkboxes = document.querySelectorAll('#duplicateGroups input[type="checkbox"]');
         checkboxes.forEach(function(cb) {
@@ -658,9 +712,6 @@
         });
     };
 
-    /**
-     * Clean duplicates (called from UI)
-     */
     window.cleanDuplicates = function() {
         var scanId = API.getCurrentScan();
         if (!scanId) {
@@ -668,7 +719,6 @@
             return;
         }
 
-        // Get selected files
         var checkboxes = document.querySelectorAll('#duplicateGroups input[type="checkbox"]:checked');
         var filePaths = Array.from(checkboxes).map(function(cb) {
             return cb.getAttribute('data-file-path');
@@ -695,9 +745,6 @@
             });
     };
 
-    /**
-     * Generate AI suggestions
-     */
     window.generateAISuggestions = function() {
         var scanId = API.getCurrentScan();
         if (!scanId) {
@@ -721,28 +768,52 @@
             });
     };
 
-    // ============================================================================
-    // TRANSFORM OPERATIONS
-    // ============================================================================
+    // ========== TRANSFORM OPERATIONS with WORKING SIDE TREES ==========
 
-    /**
-     * Open compress modal
-     */
     window.openCompressModal = function() {
-        if (selectedFiles.length === 0) {
-            Utils.showToast('Please select files from the tree first', 'error');
-            return;
+        modalSelectedFiles['compress'] = [];
+        if (currentTreeData) {
+            renderTree(currentTreeData, 'compressTreeContainer', 'compress');
+        } else {
+            document.getElementById('compressTreeContainer').innerHTML = '<div class="empty-state"><p>No scan loaded</p></div>';
         }
-
-        document.getElementById('compressFileCount').textContent = selectedFiles.length;
+        updateModalCount('compress');
         var modal = new bootstrap.Modal(document.getElementById('compressModal'));
         modal.show();
     };
 
-    /**
-     * Execute compress operation
-     */
+    window.openConvertModal = function() {
+        modalSelectedFiles['convert'] = [];
+        if (currentTreeData) {
+            renderTree(currentTreeData, 'convertTreeContainer', 'convert');
+        } else {
+            document.getElementById('convertTreeContainer').innerHTML = '<div class="empty-state"><p>No scan loaded</p></div>';
+        }
+        updateModalCount('convert');
+        var modal = new bootstrap.Modal(document.getElementById('convertModal'));
+        modal.show();
+    };
+
+    window.openResizeModal = function() {
+        modalSelectedFiles['resize'] = [];
+        if (currentTreeData) {
+            renderTree(currentTreeData, 'resizeTreeContainer', 'resize');
+        } else {
+            document.getElementById('resizeTreeContainer').innerHTML = '<div class="empty-state"><p>No scan loaded</p></div>';
+        }
+        updateModalCount('resize');
+        var modal = new bootstrap.Modal(document.getElementById('resizeModal'));
+        modal.show();
+    };
+
     window.executeCompress = function() {
+        var files = modalSelectedFiles['compress'] || [];
+        
+        if (files.length === 0) {
+            Utils.showToast('Please select files from the tree', 'error');
+            return;
+        }
+
         var scanId = API.getCurrentScan();
         if (!scanId) {
             Utils.showToast('No scan selected', 'error');
@@ -753,50 +824,36 @@
         var format = document.getElementById('compressFormat').value;
         var outputDir = document.getElementById('compressOutputDir').value || null;
         var dryRun = document.getElementById('compressDryRun').checked;
-
-        // Construct target path
         var targetPath = outputDir ? outputDir + '/' + archiveName : archiveName;
 
-        // Show loading
-        Utils.showToast('Compressing ' + selectedFiles.length + ' files...', 'info');
+        Utils.showToast('Compressing ' + files.length + ' files...', 'info');
 
-        API.compressFiles(scanId, selectedFiles, targetPath, format, dryRun)
+        API.compressFiles(scanId, files, targetPath, format, dryRun)
             .then(function(result) {
                 bootstrap.Modal.getInstance(document.getElementById('compressModal')).hide();
                 
                 if (result.success) {
-                    Utils.showToast('Successfully compressed files to: ' + result.target_path, 'success');
+                    Utils.showToast('Successfully compressed to: ' + result.target_path, 'success');
                     showTransformResult([result]);
                 } else {
                     Utils.showToast('Compression failed: ' + result.error, 'error');
                 }
                 
-                // Clear selection
-                clearSelection();
+                modalSelectedFiles['compress'] = [];
             })
             .catch(function(error) {
                 Utils.showToast('Compression error: ' + error.message, 'error');
             });
     };
 
-    /**
-     * Open convert modal
-     */
-    window.openConvertModal = function() {
-        if (selectedFiles.length === 0) {
-            Utils.showToast('Please select image files from the tree first', 'error');
+    window.executeConvert = function() {
+        var files = modalSelectedFiles['convert'] || [];
+        
+        if (files.length === 0) {
+            Utils.showToast('Please select image files from the tree', 'error');
             return;
         }
 
-        document.getElementById('convertFileCount').textContent = selectedFiles.length;
-        var modal = new bootstrap.Modal(document.getElementById('convertModal'));
-        modal.show();
-    };
-
-    /**
-     * Execute convert operation
-     */
-    window.executeConvert = function() {
         var scanId = API.getCurrentScan();
         if (!scanId) {
             Utils.showToast('No scan selected', 'error');
@@ -807,45 +864,33 @@
         var outputDir = document.getElementById('convertOutputDir').value || null;
         var dryRun = document.getElementById('convertDryRun').checked;
 
-        // Show loading
-        Utils.showToast('Converting ' + selectedFiles.length + ' images...', 'info');
+        Utils.showToast('Converting ' + files.length + ' images...', 'info');
 
-        API.convertImages(scanId, selectedFiles, format, outputDir, dryRun)
+        API.convertImages(scanId, files, format, outputDir, dryRun)
             .then(function(result) {
                 bootstrap.Modal.getInstance(document.getElementById('convertModal')).hide();
                 
                 var results = result.results || [];
                 var successCount = results.filter(function(r) { return r.success; }).length;
                 
-                Utils.showToast('Converted ' + successCount + ' of ' + selectedFiles.length + ' images', 'success');
+                Utils.showToast('Converted ' + successCount + ' of ' + files.length + ' images', 'success');
                 showTransformResult(results);
                 
-                // Clear selection
-                clearSelection();
+                modalSelectedFiles['convert'] = [];
             })
             .catch(function(error) {
                 Utils.showToast('Conversion error: ' + error.message, 'error');
             });
     };
 
-    /**
-     * Open resize modal
-     */
-    window.openResizeModal = function() {
-        if (selectedFiles.length === 0) {
-            Utils.showToast('Please select image files from the tree first', 'error');
+    window.executeResize = function() {
+        var files = modalSelectedFiles['resize'] || [];
+        
+        if (files.length === 0) {
+            Utils.showToast('Please select image files from the tree', 'error');
             return;
         }
 
-        document.getElementById('resizeFileCount').textContent = selectedFiles.length;
-        var modal = new bootstrap.Modal(document.getElementById('resizeModal'));
-        modal.show();
-    };
-
-    /**
-     * Execute resize operation
-     */
-    window.executeResize = function() {
         var scanId = API.getCurrentScan();
         if (!scanId) {
             Utils.showToast('No scan selected', 'error');
@@ -857,31 +902,25 @@
         var outputDir = document.getElementById('resizeOutputDir').value || null;
         var dryRun = document.getElementById('resizeDryRun').checked;
 
-        // Show loading
-        Utils.showToast('Resizing ' + selectedFiles.length + ' images...', 'info');
+        Utils.showToast('Resizing ' + files.length + ' images...', 'info');
 
-        API.resizeImages(scanId, selectedFiles, maxWidth, maxHeight, outputDir, dryRun)
+        API.resizeImages(scanId, files, maxWidth, maxHeight, outputDir, dryRun)
             .then(function(result) {
                 bootstrap.Modal.getInstance(document.getElementById('resizeModal')).hide();
                 
                 var results = result.results || [];
                 var successCount = results.filter(function(r) { return r.success; }).length;
                 
-                Utils.showToast('Resized ' + successCount + ' of ' + selectedFiles.length + ' images', 'success');
+                Utils.showToast('Resized ' + successCount + ' of ' + files.length + ' images', 'success');
                 showTransformResult(results);
                 
-                // Clear selection
-                clearSelection();
+                modalSelectedFiles['resize'] = [];
             })
             .catch(function(error) {
                 Utils.showToast('Resize error: ' + error.message, 'error');
             });
     };
 
-    /**
-     * Show transform results
-     * @param {Array} results - Transform results
-     */
     function showTransformResult(results) {
         var container = document.getElementById('transformResults');
         var content = document.getElementById('transformResultsContent');
@@ -916,9 +955,124 @@
         container.style.display = 'block';
     }
 
-    /**
-     * Delete scan (exposed globally)
-     */
+    // ========== SNAPSHOTS ==========
+
+    function loadSnapshots() {
+        var container = document.getElementById('snapshotsList');
+        if (!container) return;
+
+        var scanId = API.getCurrentScan();
+        var scanSnapshots = scanId ? snapshots[scanId] || [] : [];
+
+        if (scanSnapshots.length === 0) {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-camera"></i><p>No snapshots yet</p><small class="text-muted">Create a snapshot to save the current state</small></div>';
+            return;
+        }
+
+        var html = '';
+        scanSnapshots.forEach(function(snapshot, index) {
+            html += '<div class="snapshot-card">';
+            html += '<div class="snapshot-header">';
+            html += '<div><i class="fas fa-camera me-2"></i><strong>' + snapshot.name + '</strong></div>';
+            html += '<div class="snapshot-actions">';
+            html += '<button class="btn btn-sm btn-outline-primary me-2" onclick="viewSnapshot(' + index + ')" title="View Details"><i class="fas fa-eye"></i></button>';
+            html += '<button class="btn btn-sm btn-outline-warning me-2" onclick="revertToSnapshot(' + index + ')" title="Revert"><i class="fas fa-undo"></i></button>';
+            html += '<button class="btn btn-sm btn-outline-danger" onclick="deleteSnapshot(' + index + ')" title="Delete"><i class="fas fa-trash"></i></button>';
+            html += '</div></div>';
+            html += '<div class="snapshot-meta">';
+            html += '<small class="text-muted">';
+            html += '<i class="fas fa-clock me-1"></i>' + new Date(snapshot.timestamp).toLocaleString() + ' | ';
+            html += '<i class="fas fa-file me-1"></i>' + snapshot.fileCount + ' files | ';
+            html += '<i class="fas fa-database me-1"></i>' + Utils.formatBytes(snapshot.totalSize);
+            html += '</small>';
+            html += '</div>';
+            if (snapshot.description) {
+                html += '<div class="snapshot-desc"><small>' + snapshot.description + '</small></div>';
+            }
+            html += '</div>';
+        });
+
+        container.innerHTML = html;
+    }
+
+    window.createSnapshot = function() {
+        var scanId = API.getCurrentScan();
+        if (!scanId) {
+            Utils.showToast('No scan selected', 'error');
+            return;
+        }
+
+        var name = prompt('Snapshot name:', 'Snapshot ' + (new Date().toLocaleDateString()));
+        if (!name) return;
+
+        var description = prompt('Description (optional):', '');
+
+        API.getScanOverview(scanId)
+            .then(function(data) {
+                var snapshot = {
+                    name: name,
+                    description: description,
+                    timestamp: Date.now(),
+                    scanId: scanId,
+                    fileCount: data.total_files,
+                    totalSize: data.total_size,
+                    data: currentTreeData
+                };
+
+                if (!snapshots[scanId]) {
+                    snapshots[scanId] = [];
+                }
+                snapshots[scanId].push(snapshot);
+
+                Utils.showToast('Snapshot created successfully!', 'success');
+                loadSnapshots();
+            })
+            .catch(function(error) {
+                Utils.showToast('Failed to create snapshot: ' + error.message, 'error');
+            });
+    };
+
+    window.viewSnapshot = function(index) {
+        var scanId = API.getCurrentScan();
+        var snapshot = snapshots[scanId][index];
+        
+        var info = 'Snapshot: ' + snapshot.name + '\n\n';
+        info += 'Created: ' + new Date(snapshot.timestamp).toLocaleString() + '\n';
+        info += 'Files: ' + snapshot.fileCount + '\n';
+        info += 'Size: ' + Utils.formatBytes(snapshot.totalSize) + '\n';
+        if (snapshot.description) {
+            info += 'Description: ' + snapshot.description;
+        }
+        
+        alert(info);
+    };
+
+    window.revertToSnapshot = function(index) {
+        var scanId = API.getCurrentScan();
+        var snapshot = snapshots[scanId][index];
+        
+        if (!confirm('Revert to snapshot "' + snapshot.name + '"? This will restore the directory tree view.')) {
+            return;
+        }
+
+        currentTreeData = snapshot.data;
+        renderTree(currentTreeData, 'directoryTree', 'main');
+        Utils.showToast('Reverted to snapshot: ' + snapshot.name, 'success');
+    };
+
+    window.deleteSnapshot = function(index) {
+        var scanId = API.getCurrentScan();
+        var snapshot = snapshots[scanId][index];
+        
+        if (!confirm('Delete snapshot "' + snapshot.name + '"?')) {
+            return;
+        }
+
+        snapshots[scanId].splice(index, 1);
+        Utils.showToast('Snapshot deleted', 'success');
+        loadSnapshots();
+    };
+
     window.deleteScan = function(scanId) {
         if (!confirm('Are you sure you want to delete this scan?')) {
             return;
@@ -930,6 +1084,7 @@
                 if (API.getCurrentScan() === scanId) {
                     API.clearCurrentScan();
                 }
+                delete snapshots[scanId];
                 loadScans();
             })
             .catch(function(error) {
@@ -937,10 +1092,8 @@
             });
     };
 
-    // Initialize when components are loaded
     window.onComponentsLoaded = init;
     
-    // Cleanup on page unload
     window.addEventListener('beforeunload', function() {
         if (scanStatusInterval) {
             clearInterval(scanStatusInterval);

@@ -1,27 +1,24 @@
 <aside class="sidebar">
-    <!-- Upload Section -->
     <div class="upload-section">
         <div class="section-title">
-            <i class="fas fa-upload"></i>
+            <i class="fas fa-plus-circle"></i>
             New Scan
         </div>
-        <div class="upload-zone" onclick="selectDirectory()">
+        <div class="upload-zone" id="uploadZone">
+            <input type="file" id="directoryPicker" webkitdirectory directory multiple style="display: none;">
             <div class="upload-icon">
-                <i class="fas fa-folder-open"></i>
+                <i class="fas fa-folder-plus"></i>
             </div>
             <div class="upload-text">Select Directory</div>
-            <div class="upload-subtext">Choose a folder to analyze</div>
+            <div class="upload-subtext">Click or drag & drop folder here</div>
         </div>
     </div>
 
-    <!-- Scan History -->
     <div class="scan-history">
         <div class="section-title">
             <i class="fas fa-history"></i>
             Recent Scans
         </div>
-        <div id="scanHistoryList">
-            <!-- Scans will be loaded here by JavaScript -->
-        </div>
+        <div id="scanHistoryList"></div>
     </div>
 </aside>

@@ -112,7 +112,7 @@
                                         <i class="fas fa-chart-pie me-2"></i>
                                         File Type Distribution
                                     </div>
-                                    <div id="fileTypeChart" class="chart-container"></div>
+                                    <canvas id="fileTypeChart" class="chart-container"></canvas>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -285,15 +285,16 @@
                     <!-- Snapshots Tab -->
                     <div class="tab-pane fade" id="snapshots">
                         <div class="content-card">
-                            <div class="content-card-title">
-                                <i class="fas fa-clock-rotate-left me-2"></i>
-                                Scan Snapshots
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <div class="content-card-title mb-0">
+                                    <i class="fas fa-clock-rotate-left me-2"></i>
+                                    Scan Snapshots
+                                </div>
+                                <button class="btn btn-primary btn-sm" onclick="createSnapshot()">
+                                    <i class="fas fa-camera me-2"></i>Create Snapshot
+                                </button>
                             </div>
-                            <div class="empty-state">
-                                <i class="fas fa-camera"></i>
-                                <p>Snapshot feature coming soon...</p>
-                                <small class="text-muted">Save and compare directory states over time</small>
-                            </div>
+                            <div id="snapshotsList"></div>
                         </div>
                     </div>
                 </div>
@@ -304,38 +305,46 @@
     <!-- Footer Component -->
     <div id="footer-container"></div>
 
-    <!-- Compress Modal -->
-    <div class="modal fade" id="compressModal" tabindex="-1">
-        <div class="modal-dialog">
+    <!-- Compress Modal with Side Tree -->
+    <div class="modal fade modal-lg" id="compressModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fas fa-file-zipper me-2"></i>Compress Files</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Selected Files: <span id="compressFileCount">0</span></label>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Archive Name</label>
-                        <input type="text" class="form-control" id="compressArchiveName" placeholder="archive.zip">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Format</label>
-                        <select class="form-select" id="compressFormat">
-                            <option value="zip">ZIP</option>
-                            <option value="tar">TAR.GZ</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Output Directory</label>
-                        <input type="text" class="form-control" id="compressOutputDir" placeholder="Leave empty for default">
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="compressDryRun">
-                        <label class="form-check-label" for="compressDryRun">
-                            Dry Run (test without making changes)
-                        </label>
+                    <div class="row">
+                        <div class="col-md-5">
+                            <h6 class="mb-3">Select Files</h6>
+                            <div class="modal-tree-container" id="compressTreeContainer"></div>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="mb-3">
+                                <label class="form-label">Selected Files: <span id="compressFileCount">0</span></label>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Archive Name</label>
+                                <input type="text" class="form-control" id="compressArchiveName" placeholder="archive.zip">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Format</label>
+                                <select class="form-select" id="compressFormat">
+                                    <option value="zip">ZIP</option>
+                                    <option value="tar">TAR.GZ</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Output Directory</label>
+                                <input type="text" class="form-control" id="compressOutputDir" placeholder="Leave empty for default">
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="compressDryRun">
+                                <label class="form-check-label" for="compressDryRun">
+                                    Dry Run (test without making changes)
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -348,37 +357,45 @@
         </div>
     </div>
 
-    <!-- Convert Modal -->
-    <div class="modal fade" id="convertModal" tabindex="-1">
-        <div class="modal-dialog">
+    <!-- Convert Modal with Side Tree -->
+    <div class="modal fade modal-lg" id="convertModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fas fa-exchange-alt me-2"></i>Convert Images</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Selected Files: <span id="convertFileCount">0</span></label>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Target Format</label>
-                        <select class="form-select" id="convertFormat">
-                            <option value="jpg">JPEG</option>
-                            <option value="png">PNG</option>
-                            <option value="webp">WebP</option>
-                            <option value="bmp">BMP</option>
-                            <option value="gif">GIF</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Output Directory</label>
-                        <input type="text" class="form-control" id="convertOutputDir" placeholder="Leave empty for same directory">
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="convertDryRun">
-                        <label class="form-check-label" for="convertDryRun">
-                            Dry Run (test without making changes)
-                        </label>
+                    <div class="row">
+                        <div class="col-md-5">
+                            <h6 class="mb-3">Select Files</h6>
+                            <div class="modal-tree-container" id="convertTreeContainer"></div>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="mb-3">
+                                <label class="form-label">Selected Files: <span id="convertFileCount">0</span></label>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Target Format</label>
+                                <select class="form-select" id="convertFormat">
+                                    <option value="jpg">JPEG</option>
+                                    <option value="png">PNG</option>
+                                    <option value="webp">WebP</option>
+                                    <option value="bmp">BMP</option>
+                                    <option value="gif">GIF</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Output Directory</label>
+                                <input type="text" class="form-control" id="convertOutputDir" placeholder="Leave empty for same directory">
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="convertDryRun">
+                                <label class="form-check-label" for="convertDryRun">
+                                    Dry Run (test without making changes)
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -391,37 +408,45 @@
         </div>
     </div>
 
-    <!-- Resize Modal -->
-    <div class="modal fade" id="resizeModal" tabindex="-1">
-        <div class="modal-dialog">
+    <!-- Resize Modal with Side Tree -->
+    <div class="modal fade modal-lg" id="resizeModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fas fa-crop me-2"></i>Resize Images</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Selected Files: <span id="resizeFileCount">0</span></label>
-                    </div>
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Max Width (px)</label>
-                            <input type="number" class="form-control" id="resizeMaxWidth" value="1920" min="1">
+                        <div class="col-md-5">
+                            <h6 class="mb-3">Select Files</h6>
+                            <div class="modal-tree-container" id="resizeTreeContainer"></div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Max Height (px)</label>
-                            <input type="number" class="form-control" id="resizeMaxHeight" value="1080" min="1">
+                        <div class="col-md-7">
+                            <div class="mb-3">
+                                <label class="form-label">Selected Files: <span id="resizeFileCount">0</span></label>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Max Width (px)</label>
+                                    <input type="number" class="form-control" id="resizeMaxWidth" value="1920" min="1">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Max Height (px)</label>
+                                    <input type="number" class="form-control" id="resizeMaxHeight" value="1080" min="1">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Output Directory</label>
+                                <input type="text" class="form-control" id="resizeOutputDir" placeholder="Leave empty for same directory">
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="resizeDryRun">
+                                <label class="form-check-label" for="resizeDryRun">
+                                    Dry Run (test without making changes)
+                                </label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Output Directory</label>
-                        <input type="text" class="form-control" id="resizeOutputDir" placeholder="Leave empty for same directory">
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="resizeDryRun">
-                        <label class="form-check-label" for="resizeDryRun">
-                            Dry Run (test without making changes)
-                        </label>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -436,6 +461,8 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js for Pie Chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <!-- Custom JS -->
     <script src="js/utils.js"></script>
     <script src="js/api.js"></script>

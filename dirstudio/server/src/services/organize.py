@@ -86,16 +86,19 @@ Rules:
                 "langchain-mistralai required. Install: pip install langchain-mistralai"
             )
 
+        from dotenv import load_dotenv
+        load_dotenv()
+
         api_key = os.getenv("MISTRAL_API_KEY")
         if not api_key:
             raise ValueError(
                 "MISTRAL_API_KEY not found in environment variables."
             )
 
-        # IMPORTANT: do NOT pass api_key here
         return ChatMistralAI(
-            model="mistral-medium-3.1",
+            model="mistral-large-latest",
             temperature=self.temperature,
+            api_key=api_key
         )
     
     def _tree_to_compact_json(self, tree: FilesystemTree, max_depth: int = 5) -> str:
