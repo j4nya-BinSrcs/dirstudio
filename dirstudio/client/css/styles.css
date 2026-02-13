@@ -1006,3 +1006,295 @@ html[data-theme="dark"] .btn-close {
 .folder-icon {
     color: #f59e0b;
 }
+
+/* AI SUggestion tab Styles */
+/* ============================================================================
+   AI Suggestions Beautiful UI Styles
+   ============================================================================ */
+
+/* AI Suggestions Header */
+.ai-suggestions-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.ai-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.ai-stats {
+    display: flex;
+    gap: 24px;
+    font-size: 14px;
+    opacity: 0.95;
+}
+
+.ai-stats span {
+    display: flex;
+    align-items: center;
+}
+
+.ai-stats i {
+    opacity: 0.8;
+}
+
+/* Suggestion Cards */
+.suggestion-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.3s ease;
+}
+
+.suggestion-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.suggestion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.suggestion-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.suggestion-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.suggestion-title strong {
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.suggestion-title i {
+    color: var(--primary-color);
+}
+
+/* Confidence Badge */
+.suggestion-card .badge {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Reason Section */
+.suggestion-reason {
+    background: rgba(99, 102, 241, 0.05);
+    border-left: 3px solid var(--primary-color);
+    padding: 14px 16px;
+    margin: 16px 0;
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.suggestion-reason i {
+    color: var(--primary-color);
+    opacity: 0.5;
+}
+
+/* Files Section */
+.suggestion-files {
+    margin-top: 16px;
+}
+
+.files-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg-main);
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.files-summary i {
+    color: var(--primary-color);
+}
+
+.files-summary strong {
+    color: var(--text-primary);
+}
+
+.files-summary button {
+    padding: 4px 12px;
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.files-summary button:hover {
+    background: rgba(99, 102, 241, 0.1);
+    text-decoration: none;
+}
+
+.files-list {
+    background: var(--bg-main);
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+
+.file-item:hover {
+    background: rgba(99, 102, 241, 0.08);
+    transform: translateX(4px);
+}
+
+.file-item i {
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.file-item span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Note Section (for empty folders) */
+.suggestion-note {
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 3px solid #f59e0b;
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.suggestion-note i {
+    color: #f59e0b;
+}
+
+/* Actions */
+.suggestion-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.suggestion-actions button {
+    font-size: 13px;
+}
+
+/* Scrollbar for files list */
+.files-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.files-list::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+.files-list::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.files-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .ai-suggestions-header {
+    background: linear-gradient(135deg, #5b6fc7 0%, #6b4192 100%);
+}
+
+[data-theme="dark"] .suggestion-card {
+    background: #1e1e2e;
+    border-color: #313244;
+}
+
+[data-theme="dark"] .suggestion-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .suggestion-reason {
+    background: rgba(99, 102, 241, 0.1);
+}
+
+[data-theme="dark"] .file-item {
+    background: #181825;
+}
+
+[data-theme="dark"] .file-item:hover {
+    background: rgba(99, 102, 241, 0.15);
+}
+
+[data-theme="dark"] .files-summary {
+    background: #181825;
+}
+
+[data-theme="dark"] .files-list {
+    background: #181825;
+}
+
+[data-theme="dark"] .suggestion-note {
+    background: rgba(245, 158, 11, 0.15);
+}
+
+/* Animations */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.suggestion-card {
+    animation: slideInUp 0.4s ease;
+}
+
+.suggestion-card:nth-child(1) { animation-delay: 0.05s; }
+.suggestion-card:nth-child(2) { animation-delay: 0.1s; }
+.suggestion-card:nth-child(3) { animation-delay: 0.15s; }
+.suggestion-card:nth-child(4) { animation-delay: 0.2s; }
+.suggestion-card:nth-child(5) { animation-delay: 0.25s; }

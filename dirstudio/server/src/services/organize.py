@@ -96,7 +96,7 @@ Rules:
             )
 
         return ChatMistralAI(
-            model="mistral-large-latest",
+            model="mistral-large-latest", # type: ignore
             temperature=self.temperature,
             api_key=api_key
         )
