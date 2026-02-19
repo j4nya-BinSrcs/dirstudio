@@ -1,23 +1,46 @@
 <aside class="sidebar">
+
+    <!-- ── Upload / Scan Zone ─────────────────────────────── -->
     <div class="upload-section">
         <div class="section-title">
-            <i class="fas fa-plus-circle"></i>
-            New Scan
+            <i class="fas fa-radar"></i> Scan Directory
         </div>
+
+        <!-- Drop zone — click, drag-drop, or use buttons -->
         <div class="upload-zone" id="uploadZone">
             <div class="upload-icon">
                 <i class="fas fa-folder-plus"></i>
             </div>
-            <div class="upload-text">Click to Enter Path</div>
-            <div class="upload-subtext">or drag & drop folder here</div>
+            <div class="upload-text">Scan a directory</div>
+            <div class="upload-subtext">Drag &amp; drop a folder, or use the buttons below</div>
+
+            <div class="upload-actions">
+                <!-- Folder picker: uses webkitdirectory to let user browse for a folder -->
+                <button class="upload-btn" id="folderPickerBtn" type="button" title="Browse for a folder">
+                    <i class="fas fa-folder-open"></i> Browse
+                </button>
+                <!-- Path prompt: typed entry -->
+                <button class="upload-btn primary" id="pathPromptBtn" type="button" title="Type a path directly">
+                    <i class="fas fa-keyboard"></i> Enter path
+                </button>
+            </div>
+
+            <!-- Hidden folder input — triggered by Browse button -->
+            <input type="file" id="folderInput" webkitdirectory multiple style="display:none">
         </div>
     </div>
 
+    <!-- ── Scan History ───────────────────────────────────── -->
     <div class="scan-history">
         <div class="section-title">
-            <i class="fas fa-history"></i>
-            Recent Scans
+            <i class="fas fa-clock-rotate-left"></i> Recent Scans
         </div>
-        <div id="scanHistoryList"></div>
+        <div id="scanHistoryList">
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>No scans yet</p>
+            </div>
+        </div>
     </div>
+
 </aside>

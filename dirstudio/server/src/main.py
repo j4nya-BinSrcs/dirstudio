@@ -10,6 +10,16 @@ if str(src_path) not in sys.path:
 from services.scan import Scanner
 from services.duplicate import DuplicateDetector
 
+from dotenv import load_dotenv
+import os
+
+# Resolve: dirstudio/server/.env
+env_path = Path(__file__).resolve().parents[1] / ".env"
+
+loaded = load_dotenv(dotenv_path=env_path, override=True)
+
+print(f"[ENV] Loaded: {loaded}")
+print(f"[ENV] Path: {env_path}")
 
 def cli_mode(test_path: str):
     """Run in CLI mode with full analysis pipeline."""
