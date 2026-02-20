@@ -67,10 +67,11 @@ Contributions are welcome.
 
 ---
 
-## 👤 Contributord
-**Shivani Panchal**
-**Janya Kansara**
-**Kavy Sachaniya**
+## 👤 Contributor
+**Shivani Panchal**  
+**Janya Kansara**  
+**Kavy Sachaniya**  
 
 GitHub: https://github.com/j4nya-BinSrcs
+
 
