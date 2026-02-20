@@ -176,3 +176,4 @@ def get_duplicate_groups(db: Session, scan_id: str) -> List[DuplicateGroup]:
     if not scan:
         return []
     return db.query(DuplicateGroup).filter(DuplicateGroup.scan_id == scan.id).all()
+    
