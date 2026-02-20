@@ -1,0 +1,43 @@
+<!-- ═══════════════════════════════════════════════════════════════
+     Tree Page
+     Injected into #page-tree by js/pages/tree.js
+═══════════════════════════════════════════════════════════════ -->
+
+<div class="tree-layout">
+
+    <!-- Left panel: directory tree -->
+    <div class="tree-panel-left content-card">
+        <div class="tree-panel-header">
+            <div class="content-card-title mb-0">
+                <i class="fas fa-folder-tree me-2"></i>Directory Structure
+            </div>
+            <div class="tree-toolbar">
+                <button class="tree-tool-btn" id="treeExpandAll" title="Expand all">
+                    <i class="fas fa-angle-double-down"></i>
+                </button>
+                <button class="tree-tool-btn" id="treeCollapseAll" title="Collapse all">
+                    <i class="fas fa-angle-double-up"></i>
+                </button>
+            </div>
+        </div>
+        <div class="tree-scroll">
+            <div id="directoryTree" class="directory-tree"></div>
+        </div>
+    </div>
+
+    <!-- Right panel: file/folder preview -->
+    <div class="tree-panel-right content-card" id="previewPanel">
+        <div class="preview-empty" id="previewEmpty">
+            <div class="preview-empty-icon">
+                <i class="fas fa-hand-pointer"></i>
+            </div>
+            <p>Click any file or folder<br>to see its details</p>
+        </div>
+        <div class="preview-content" id="previewContent" style="display:none">
+            <div class="preview-hero"   id="previewHero"></div>
+            <div class="preview-name"   id="previewName"></div>
+            <div class="preview-rows"   id="previewRows"></div>
+        </div>
+    </div>
+
+</div>

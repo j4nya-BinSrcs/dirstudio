@@ -1,0 +1,74 @@
+<!-- ═══════════════════════════════════════════════════════════════
+     Overview Page
+     Injected into #page-overview by js/pages/overview.js
+═══════════════════════════════════════════════════════════════ -->
+
+<!-- Row 1: Core stat cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon stat-icon--files"><i class="fas fa-file-lines"></i></div>
+            <div class="stat-content">
+                <div class="stat-label">Total Files</div>
+                <div class="stat-value" id="totalFiles">—</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon stat-icon--size"><i class="fas fa-weight-scale"></i></div>
+            <div class="stat-content">
+                <div class="stat-label">Total Size</div>
+                <div class="stat-value" id="totalSize">—</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon stat-icon--dirs"><i class="fas fa-folder-open"></i></div>
+            <div class="stat-content">
+                <div class="stat-label">Directories</div>
+                <div class="stat-value" id="totalDirs">—</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 2: Charts -->
+<div class="row g-3 mb-4 align-items-stretch">
+    <div class="col-lg-7">
+        <div class="content-card h-100">
+            <div class="content-card-title">
+                <i class="fas fa-chart-pie me-2"></i>File Categories
+            </div>
+            <div class="chart-wrap" style="height: 280px;">
+                <canvas id="fileTypeChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="content-card h-100">
+            <div class="content-card-title">
+                <i class="fas fa-ranking-star me-2"></i>Most Common File Types
+            </div>
+            <div id="extensionsList" class="ext-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 3: Scan details -->
+<div class="row g-3">
+    <div class="col-12">
+        <div class="content-card">
+            <div class="content-card-title">
+                <i class="fas fa-circle-info me-2"></i>Scan Details
+            </div>
+            <div id="scanInfoCard">
+                <div class="info-empty">
+                    <i class="fas fa-folder-magnifying-glass"></i>
+                    <p>Select a scan to view details</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
