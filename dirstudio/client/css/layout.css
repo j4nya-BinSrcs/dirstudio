@@ -20,11 +20,17 @@
 .brand { display: flex; align-items: center; gap: 12px; }
 
 .brand-icon {
-    width: 40px; height: 40px; border-radius: 11px;
+    width: 100px; height: 60px; border-radius: 11px;
     background: var(--grad);
     display: flex; align-items: center; justify-content: center;
     color: #fff; font-size: 18px;
     box-shadow: 0 3px 10px rgba(59,130,246,.35);
+}
+
+.logo-img {
+    height: 60px;
+    width: 60px;
+    display: block;
 }
 
 .brand-text h1 {
@@ -165,6 +171,7 @@
     border-top: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 24px; font-size: 11px; color: var(--tx-3);
+    z-index: 100;
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────────── */
